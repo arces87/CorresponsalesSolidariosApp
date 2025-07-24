@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
+import { Alert } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const menuItems = [
@@ -17,6 +19,23 @@ const menuItems = [
 
 export default function MenuScreen() {
   const router = useRouter();
+  const { checkSessionExpired, setUserData } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    setUserData(null);
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem('authToken');
+    } catch (e) {}
+    router.replace('/');
+  }
+
+  useEffect(() => {
+    if (checkSessionExpired()) {
+      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      handleLogout();
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -30,12 +49,21 @@ export default function MenuScreen() {
               <Image source={menuItems[rowIdx].icon} style={styles.menuIcon} />
               <Text style={styles.menuLabel}>{menuItems[rowIdx].label}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuButton} onPress={() => menuItems[rowIdx+1].route && router.push(menuItems[rowIdx+1].route)}>
-              {menuItems[rowIdx+1].icon && (
-                <Image source={menuItems[rowIdx+1].icon} style={styles.menuIcon} />
-              )}
-              <Text style={styles.menuLabel}>{menuItems[rowIdx+1].label}</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+  style={styles.menuButton}
+  onPress={() => {
+    if (menuItems[rowIdx+1].label === 'CERRAR SESIÓN') {
+      handleLogout();
+    } else if (menuItems[rowIdx+1].route) {
+      router.push(menuItems[rowIdx+1].route);
+    }
+  }}
+>
+  {menuItems[rowIdx+1].icon && (
+    <Image source={menuItems[rowIdx+1].icon} style={styles.menuIcon} />
+  )}
+  <Text style={styles.menuLabel}>{menuItems[rowIdx+1].label}</Text>
+</TouchableOpacity>
           </View>
         ))}
       </ScrollView>

@@ -1,57 +1,23 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useContext } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-import * as Device from 'expo-device';
-
-import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import ApiService from '../services/ApiService';
 
 export default function ReactivarScreen() {
     const router = useRouter();  
     const { userData } = useContext(AuthContext);
-
-    // Función para obtener el DEVICE_ID (igual que en LoginScreen)
-    const getDeviceId = async () => {
-        try {
-            const deviceId = Device.osInternalBuildId || Device.deviceName || '';
-            return deviceId;
-        } catch (error) {
-            console.error('Error al obtener el Device ID:', error);
-            return '';
-        }
-    };
-
-    // Función para generar un GUID tipo UUID v4 a partir del IMEI
-    function getGUID(imei) {
-        let hash = 0;
-        if (!imei) return '';
-        for (let i = 0; i < imei.length; i++) {
-            hash = ((hash << 5) - hash) + imei.charCodeAt(i);
-            hash |= 0;
-        }
-        return Math.abs(hash).toString(16).padStart(16, '0');
-    }
-
+    
     const handleActivacion = async () => {
         if (!userData.usuario || !userData.contrasenia) {
             alert('Por favor ingrese usuario y clave.');
             return;
         }
-        try {            
-            const imei = await getDeviceId();
-            const mac = getGUID(imei);
-            const latitud = 0;
-            const longitud = 0;
-            /* const response = await ApiService.solicitudActivacion({
+        try {
+             const response = await ApiService.solicitudActivacion({
                 usuario: userData.usuario,
-                contrasenia: userData.contrasenia,
-                imei: imei,
-                mac: mac,
-                latitud,
-                longitud,
-            }); */
-            alert(userData.usuario + " " + userData.contrasenia);
+                contrasenia: userData.contrasenia
+            });             
             alert('Solicitud de activación enviada correctamente.');
             router.replace('/');
         } catch (error) {

@@ -34,13 +34,9 @@ export default function LoginScreen() {
       alert('Por favor ingrese usuario y clave.');
       return;
     }
-    const imei = await getDeviceId();
-    const mac = getGUID(imei);
     setUserData({
       usuario: username,
-      contrasenia: password,
-      imei,
-      mac
+      contrasenia: password
     });
     router.push('/reactivar');
   };
@@ -67,27 +63,27 @@ export default function LoginScreen() {
     }
     try {
 
-      /* const username = "CTORRES";
-      const password = "2025.Pruebas";
-      const imei = "88F33DE43A5D40F4F5C4B86397B96A0B";
-      const mac = "9ef8f9b213c8502b"; */
-
       const response = await ApiService.login({
         usuario: username,
-        contrasenia: password,
-        imei,
-        mac,
-        latitud,
-        longitud,
+        contrasenia: password
       });
 
       if (response.token) {
+        // Decodifica el token para obtener la expiración
+        let tokenExp = null;
+        try {
+          const jwtDecode = require('jwt-decode');
+          const decoded = jwtDecode(response.token);
+          tokenExp = decoded.exp ? decoded.exp * 1000 : null; // exp viene en segundos
+        } catch (e) {
+          tokenExp = null;
+        }
         setUserData({
           usuario: username,
           contrasenia: password,
-          imei,
-          mac,
           token: response.token,
+          loginTimestamp: Date.now(),
+          tokenExp,
         });
         router.push('/menu');
       } else {
@@ -96,42 +92,45 @@ export default function LoginScreen() {
     } catch (error) {
       alert('Error de autenticación: ' + (error.message || error));
     }
+  };  
+
+  const showDeviceInfo = async () => {
+    let imei = '';
+    let mac = '';
+    try {
+      imei = await getDeviceId();
+      if (!imei) {
+        alert('No se pudo obtener un identificador de dispositivo en este entorno.');
+        return;
+      }
+      mac = getGUID(imei);
+    } catch (error) {
+      alert('Error al obtener el Device ID: ' + (error.message || error));
+      return '';
+    }
+    alert('DEVICE_ID: ' + imei + '\nGUID: ' + mac);
   };
 
-  // Función para obtener el DEVICE_ID
+  // Función para obtener el Device ID
   const getDeviceId = async () => {
     try {
-      // Usar osInternalBuildId si está disponible, si no, usar deviceName
-      const deviceId = Device.osInternalBuildId || Device.deviceName || '';
-      return deviceId;
+      return Device.osInternalBuildId || Device.deviceName || '';
     } catch (error) {
-      console.error('Error al obtener el Device ID:', error);
       return '';
     }
   };
 
-  const showDeviceInfo = async () => {
-    const imei = await getDeviceId();
-    const mac = getGUID(imei);
-    alert(`DEVICE_ID: ${imei}\nGUID: ${mac}`);
-  };
-
-  // Función para generar un GUID tipo UUID v4 a partir del IMEI
+  // Función para generar un GUID tipo hash hexa padded igual que en ApiService
   function getGUID(imei) {
     let hash = 0;
+    if (!imei) return '';
     for (let i = 0; i < imei.length; i++) {
       hash = ((hash << 5) - hash) + imei.charCodeAt(i);
       hash |= 0;
     }
-    let hex = Math.abs(hash).toString(16).padStart(12, '0');
-    return (
-      hex.substring(0, 8) + '-' +
-      hex.substring(8, 12) + '-4' +
-      hex.substring(12, 15).padEnd(3, '0') + '-a' +
-      hex.substring(15, 18).padEnd(3, '0') + '-' +
-      hex.substring(18).padEnd(12, '0')
-    );
+    return Math.abs(hash).toString(16).padStart(16, '0');
   }
+
 
   return (
     <View style={styles.container}>

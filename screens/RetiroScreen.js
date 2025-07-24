@@ -1,11 +1,30 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import { Alert } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function RetiroScreen() {
   const router = useRouter();
+  const { checkSessionExpired, setUserData } = useContext(AuthContext);
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
+
+  const handleLogout = async () => {
+    setUserData(null);
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem('authToken');
+    } catch (e) {}
+    router.replace('/');
+  };
+
+  useEffect(() => {
+    if (checkSessionExpired()) {
+      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      handleLogout();
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
