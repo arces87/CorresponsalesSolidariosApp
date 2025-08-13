@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const menuItems = [
   { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/retiro' },
@@ -11,7 +10,7 @@ const menuItems = [
   { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '' },
   { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '' },
   { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '' },
-  { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '' },
+  { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab' },
   { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '' },
   { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '' },
   { label: 'CERRAR SESIÓN', icon: null, route: '/' },

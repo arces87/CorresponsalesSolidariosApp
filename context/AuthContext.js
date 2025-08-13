@@ -7,6 +7,9 @@ const SESSION_TIMEOUT_MINUTES = 15;
 export function AuthProvider({ children }) {
   // userData puede contener usuario, contrasenia, imei, mac, token, loginTimestamp, etc.
   const [userData, setUserData] = useState(null);
+  const [catalogos, setCatalogos] = useState(null);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(false);
+  const [errorCatalogos, setErrorCatalogos] = useState(null);
 
   // Lógica para timeout absoluto desde login
   const checkSessionExpired = () => {
@@ -22,9 +25,18 @@ export function AuthProvider({ children }) {
     return false;
   };
 
-
   return (
-    <AuthContext.Provider value={{ userData, setUserData, checkSessionExpired }}>
+    <AuthContext.Provider value={{ 
+      userData, 
+      setUserData, 
+      checkSessionExpired,
+      catalogos,
+      setCatalogos,
+      loadingCatalogos,
+      setLoadingCatalogos,
+      errorCatalogos,
+      setErrorCatalogos
+    }}>
       {children}
     </AuthContext.Provider>
   );

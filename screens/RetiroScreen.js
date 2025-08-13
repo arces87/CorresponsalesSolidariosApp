@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useContext, useEffect } from 'react';
-import { Alert } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function RetiroScreen() {
   const router = useRouter();

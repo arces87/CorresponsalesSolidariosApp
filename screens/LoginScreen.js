@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
@@ -12,7 +13,17 @@ export default function LoginScreen() {
   const [userError, setUserError] = useState(false);
   const [passError, setPassError] = useState(false);
   const router = useRouter();
-  const { setUserData } = useContext(AuthContext);
+  const { setUserData, setCatalogos } = useContext(AuthContext);
+  
+  // Función para guardar el token en AsyncStorage
+  const saveAuthToken = async (token) => {
+    try {
+      await AsyncStorage.setItem('authToken', token);
+      console.log('Token guardado en AsyncStorage');
+    } catch (error) {
+      console.error('Error al guardar el token:', error);
+    }
+  };
 
 
   // Función para ir a Reactivar y guardar datos en contexto
@@ -61,31 +72,61 @@ export default function LoginScreen() {
       alert('Por favor ingrese usuario y clave.');
       return;
     }
+    
     try {
 
       const response = await ApiService.login({
-        usuario: username,
-        contrasenia: password
+        usuario: 'CTORRES',
+        contrasenia: '2025.Pruebas'
       });
 
       if (response.token) {
-        // Decodifica el token para obtener la expiración
-        let tokenExp = null;
-        try {
-          const jwtDecode = require('jwt-decode');
-          const decoded = jwtDecode(response.token);
-          tokenExp = decoded.exp ? decoded.exp * 1000 : null; // exp viene en segundos
-        } catch (e) {
-          tokenExp = null;
-        }
-        setUserData({
-          usuario: username,
-          contrasenia: password,
-          token: response.token,
+        // 1. Guardar el token en AsyncStorage
+        console.log('Guardando token de autenticación...');
+        await saveAuthToken(response.token);
+        
+        // 2. Guardar los datos del usuario en el contexto
+        const userData = {
+          ...response,
           loginTimestamp: Date.now(),
-          tokenExp,
-        });
-        router.push('/menu');
+          tokenExp: null,
+          usuario: username,
+          contrasenia: password
+        };
+        
+        console.log('Guardando datos de usuario en el contexto...');
+        setUserData(userData);
+        
+        // 3. Obtener catálogos
+        try {
+          console.log('Iniciando carga de catálogos...');          
+
+          const catalogos = await ApiService.obtenerDistribuidos({
+            usuario: 'CTORRES'
+          });
+          
+          console.log('Catálogos obtenidos:', catalogos ? 'Sí' : 'No');
+          if (catalogos) {
+            console.log('Tipos de alerta recibidos:', catalogos.tiposAlertas?.length || 0);
+            console.log('Guardando catálogos en el contexto...');
+            setCatalogos(catalogos);
+          }
+          
+        } catch (error) {
+          console.error('Error cargando catálogos:', error);
+          console.log('Continuando sin catálogos...');
+          // Continuar con el login aunque falle la carga de catálogos
+          setUserData({
+            ...response,
+            loginTimestamp: Date.now(),
+            tokenExp: null,
+            catalogos: null,
+            usuario: username,
+            contrasenia: password
+          });
+        }        
+        console.log('Navegando al menú...');
+        router.replace('/menu');
       } else {
         alert('Credenciales incorrectas o usuario inactivo');
       }
