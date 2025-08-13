@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, Platform, RefreshControl, TouchableOpacity } from 'react-native';
-import ApiService from '../services/ApiService';
+import React, { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import ApiService from '../services/ApiService';
 
 import { useRouter } from 'expo-router';
 
@@ -15,7 +15,10 @@ const HistorialAlertasScreen = () => {
   const fetchAlertas = async () => {
     setLoading(true);
     try {
-      const data = await ApiService.listarAlertas({ usuario: userData?.usuario || '' });
+      const data = await ApiService.listarAlertas({ 
+        usuario: 'CTORRES'
+        //usuario: userData?.usuario
+      });
       setAlertas(data.alertas || []);
     } catch (err) {
       setAlertas([]);
@@ -36,9 +39,9 @@ const HistorialAlertasScreen = () => {
 
   const renderItem = ({ item }) => (
     <View style={styles.itemCard}>
-      <Text style={styles.tipo}>{item.tipoNombre || 'Tipo desconocido'}</Text>
+      <Text style={styles.tipo}>{item.idTipo || 'Tipo desconocido'}</Text>
       <Text style={styles.descripcion}>{item.descripcion}</Text>
-      <Text style={styles.fecha}>{item.fecha} {item.hora}</Text>
+      <Text style={styles.fecha}>{item.fecha}</Text>
     </View>
   );
 
@@ -90,6 +93,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
   backButton: {
     width: 40,

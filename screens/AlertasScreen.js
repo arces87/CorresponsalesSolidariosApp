@@ -1,13 +1,13 @@
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 const AlertasScreen = () => {
   const router = useRouter();
-  const { catalogos } = useContext(AuthContext);
+  const { catalogos, userData } = useContext(AuthContext);
   const [tipo, setTipo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,48 +15,49 @@ const AlertasScreen = () => {
   
   // Cargar tipos de alerta cuando cambien los catálogos
   useEffect(() => {
-    console.log('Catalogos en contexto:', catalogos);
     if (catalogos?.tiposAlertas) {
-      console.log('Tipos de alerta cargados:', catalogos.tiposAlertas);
       // Establecer el primer tipo de alerta como seleccionado por defecto
       if (catalogos.tiposAlertas.length > 0 && !tipo) {
         setTipo(catalogos.tiposAlertas[0].id);
       }
       setLoadingCatalogos(false);
     } else if (catalogos) {
-      // Si catalogos existe pero no tiene tiposAlertas
-      console.log('No se encontraron tipos de alerta en los catálogos');
       setLoadingCatalogos(false);
-    } else {
-      // Si catalogos es null/undefined
-      console.log('Aún no se han cargado los catálogos');
     }
   }, [catalogos]);
 
-  // Efecto para verificar el estado de carga
-  useEffect(() => {
-    console.log('Estado de carga:', { loadingCatalogos, tieneCatalogos: !!catalogos?.tiposAlertas });
-  }, [loadingCatalogos, catalogos]);
-
   const handleRegistrar = async () => {
     if (!tipo || !descripcion.trim()) {
-      Alert.alert('Campos requeridos', 'Seleccione tipo de alerta y escriba una descripción.');
+      alert('Campos requeridos. Seleccione tipo de alerta y escriba una descripción.');
       return;
     }
+    
+    if (!userData?.usuario) {
+      alert('No se pudo obtener la información del usuario. Por favor, inicie sesión nuevamente.');
+      return;
+    }   
+
     setLoading(true);
     try {
-      await ApiService.crearAlerta({
+      const resultado = await ApiService.crearAlerta({
         idTipo: tipo,
-        descripcion,
-        usuario: userData?.usuario || '',
+        descripcion: descripcion.trim(),
+        //usuario: userData.usuario,
+        usuario: 'CTORRES',
       });
-      Alert.alert('Éxito', 'Alerta registrada correctamente.');
-      setTipo('');
-      setDescripcion('');
-    } catch (err) {
-      Alert.alert('Error', err.message || 'No se pudo registrar la alerta.');
+      
+      if(resultado){
+        alert('La alerta ha sido registrada correctamente');
+      }
+      else{
+        alert('No se pudo registrar la alerta.');
+      }
+    } catch (error) {
+      alert(error.message || error);
     } finally {
       setLoading(false);
+      setTipo(catalogos?.tiposAlertas?.[0]?.id || '');
+      setDescripcion('');
     }
   };
 
@@ -105,7 +106,6 @@ const AlertasScreen = () => {
             onValueChange={setTipo}
             style={styles.picker}
             dropdownIconColor="#000"
-            dropdownIconRippleColor="#ccc"
           >
             {catalogos.tiposAlertas.map((tipoItem) => (
               <Picker.Item 
@@ -182,8 +182,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#2957a4',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    alignItems: 'center',    
   },
   title: {
     color: '#fff',

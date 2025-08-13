@@ -14,7 +14,8 @@ export default function LoginScreen() {
   const [passError, setPassError] = useState(false);
   const router = useRouter();
   const { setUserData, setCatalogos } = useContext(AuthContext);
-  
+  const [loading, setLoading] = useState(false);
+
   // Función para guardar el token en AsyncStorage
   const saveAuthToken = async (token) => {
     try {
@@ -55,36 +56,37 @@ export default function LoginScreen() {
 
   // Función para manejar el login
   const handleLogin = async () => {
-    let hasError = false;
-    if (!username.trim()) {
-      setUserError(true);
-      hasError = true;
-    } else {
-      setUserError(false);
-    }
-    if (!password.trim()) {
-      setPassError(true);
-      hasError = true;
-    } else {
-      setPassError(false);
-    }
-    if (hasError) {
+    // Validar campos
+    const hasUserError = !username.trim();
+    const hasPassError = !password.trim();
+    
+    setUserError(hasUserError);
+    setPassError(hasPassError);
+    
+    if (hasUserError || hasPassError) {
       alert('Por favor ingrese usuario y clave.');
       return;
     }
+
+    // Activar estado de carga
+    setLoading(true);
     
     try {
 
       const response = await ApiService.login({
         usuario: 'CTORRES',
         contrasenia: '2025.Pruebas'
+        //usuario: username.trim(),
+        //contrasenia: password.trim()
       });
 
-      if (response.token) {
+      if (!response?.token) {
+        throw new Error('No se recibió un token de autenticación válido');
+      }
+
         // 1. Guardar el token en AsyncStorage
-        console.log('Guardando token de autenticación...');
         await saveAuthToken(response.token);
-        
+
         // 2. Guardar los datos del usuario en el contexto
         const userData = {
           ...response,
@@ -93,47 +95,34 @@ export default function LoginScreen() {
           usuario: username,
           contrasenia: password
         };
-        
-        console.log('Guardando datos de usuario en el contexto...');
+
         setUserData(userData);
-        
+
         // 3. Obtener catálogos
         try {
-          console.log('Iniciando carga de catálogos...');          
-
           const catalogos = await ApiService.obtenerDistribuidos({
             usuario: 'CTORRES'
+            //usuario: username.trim()
           });
-          
-          console.log('Catálogos obtenidos:', catalogos ? 'Sí' : 'No');
+
           if (catalogos) {
-            console.log('Tipos de alerta recibidos:', catalogos.tiposAlertas?.length || 0);
-            console.log('Guardando catálogos en el contexto...');
             setCatalogos(catalogos);
           }
-          
         } catch (error) {
           console.error('Error cargando catálogos:', error);
-          console.log('Continuando sin catálogos...');
           // Continuar con el login aunque falle la carga de catálogos
-          setUserData({
-            ...response,
-            loginTimestamp: Date.now(),
-            tokenExp: null,
-            catalogos: null,
-            usuario: username,
-            contrasenia: password
-          });
-        }        
-        console.log('Navegando al menú...');
+        setUserData(prev => ({
+          ...prev,
+          catalogos: null
+        }));
+        }
         router.replace('/menu');
-      } else {
-        alert('Credenciales incorrectas o usuario inactivo');
-      }
     } catch (error) {
-      alert('Error de autenticación: ' + (error.message || error));
+      alert(error.message || error);
+    }finally {      
+      setLoading(false);
     }
-  };  
+  };
 
   const showDeviceInfo = async () => {
     let imei = '';
@@ -191,7 +180,7 @@ export default function LoginScreen() {
           onChangeText={text => { setUsername(text); if (userError && text) setUserError(false); }}
           autoCapitalize="none"
         />
-        
+
 
         <Text style={[styles.label, { marginTop: 20 }]}>Ingrese su clave</Text>
         <View style={styles.passwordContainer}>
@@ -205,12 +194,17 @@ export default function LoginScreen() {
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
             <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
           </TouchableOpacity>
-          
-        </View>        
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>INGRESAR</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.loginButton, loading && { opacity: 0.7 }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.loginButtonText}>{loading ? 'Autenticando...' : 'INGRESAR'}</Text>
         </TouchableOpacity>
+
         <View style={styles.bottomOptions}>
           <TouchableOpacity style={styles.bottomButton} onPress={handleGoToReactivar}>
             <Text style={styles.bottomText}>REACTIVAR</Text>

@@ -33,27 +33,19 @@ class ApiService {
         mac,
         latitud: location.latitud,
         longitud: location.longitud
-      };
-
-      console.log('Realizando petición a:', url);
-      console.log('Headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': token ? 'Bearer [TOKEN]' : 'No token'
-      });
-      console.log('Body:', body);
+      };      
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Authorization': token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify(body),
       });
 
-      console.log('Respuesta del servidor - Status:', response.status);
       const responseData = await response.text();
-      console.log('Respuesta del servidor - Body:', responseData);
+      
 
       if (!response.ok) {
         let errorMessage = `Error al obtener catálogos (${response.status})`;
@@ -97,9 +89,6 @@ class ApiService {
         longitud: location.longitud,
       };
 
-      console.log('Realizando petición a:', url);
-      console.log('Body:', body);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -107,6 +96,7 @@ class ApiService {
         },
         body: JSON.stringify(body),
       });
+      console.log('respuesta:',response);
       const text = await response.text();
       let data;
       try {
@@ -172,11 +162,10 @@ class ApiService {
     const location = await LocationService.getLocation();
     const now = new Date();
     const fecha = now.toISOString();
-    // Formato HH:mm:ss para hora
     const hora = now.toTimeString().slice(0, 8);
     const body = {
       fecha,
-      hora, // Si el backend requiere otro formato para TimeSpan, ajustar aquí
+      hora,
       descripcion,
       idTipo,
       usuario,
@@ -190,6 +179,9 @@ class ApiService {
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) throw new Error('Sin conexión a internet');
       const token = await this.getAuthToken();
+      console.log('Token:', token);
+      console.log('URL:', url);
+      console.log('Body:', body);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -198,6 +190,7 @@ class ApiService {
         },
         body: JSON.stringify(body),
       });
+      console.log('respuesta:', response);
       const text = await response.text();
       let data;
       try {
@@ -215,7 +208,7 @@ class ApiService {
     }
   }
 
-  static async listarAlertas({ cantidadElementos = 20, usuario }) {
+  static async listarAlertas({ cantidadElementos = 5, usuario }) {
     const location = await LocationService.getLocation();
     const body = {
       cantidadElementos,
