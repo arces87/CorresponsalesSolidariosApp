@@ -4,7 +4,7 @@ import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { AuthContext } from '../context/AuthContext';
 
 const menuItems = [
-  { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/retiro' },
+  { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/buscarcliente' },
   { label: 'DEPÓSITO', icon: require('../assets/ico-deposito.png'), route: '' },
   { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '' },
   { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '' },
@@ -12,7 +12,7 @@ const menuItems = [
   { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '' },
   { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab' },
   { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '' },
-  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '' },
+  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '' },  
   { label: 'CERRAR SESIÓN', icon: null, route: '/' },
 ];
 

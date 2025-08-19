@@ -2,9 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+//import styles from '../styles/globalStyles';
+import { StyleSheet } from 'react-native';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -84,6 +86,9 @@ export default function LoginScreen() {
         throw new Error('No se recibió un token de autenticación válido');
       }
 
+      if(response.cambioContrasenia){
+        router.push('/cambiocontrasena');
+      }
         // 1. Guardar el token en AsyncStorage
         await saveAuthToken(response.token);
 
@@ -96,7 +101,7 @@ export default function LoginScreen() {
           contrasenia: password
         };
 
-        setUserData(userData);
+        setUserData(userData);      
 
         // 3. Obtener catálogos
         try {
@@ -116,7 +121,7 @@ export default function LoginScreen() {
           catalogos: null
         }));
         }
-        router.replace('/menu');
+        router.push('/menu');
     } catch (error) {
       alert(error.message || error);
     }finally {      
@@ -161,7 +166,6 @@ export default function LoginScreen() {
     return Math.abs(hash).toString(16).padStart(16, '0');
   }
 
-
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
@@ -181,7 +185,6 @@ export default function LoginScreen() {
           autoCapitalize="none"
         />
 
-
         <Text style={[styles.label, { marginTop: 20 }]}>Ingrese su clave</Text>
         <View style={styles.passwordContainer}>
           <TextInput
@@ -191,10 +194,18 @@ export default function LoginScreen() {
             onChangeText={text => { setPassword(text); if (passError && text) setPassError(false); }}
             secureTextEntry={!showPassword}
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+          <TouchableOpacity 
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+            disabled={loading}
+          >
+            <Image 
+              source={showPassword ? 
+                require('../assets/eye-off.png') : 
+                require('../assets/eye.png')} 
+              style={styles.eyeIconImage}
+            />
           </TouchableOpacity>
-
         </View>
 
         <TouchableOpacity
