@@ -1,5 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AlertasScreen from './AlertasScreen';
 import HistorialAlertasScreen from './HistorialAlertasScreen';
 
@@ -8,90 +9,131 @@ const TABS = [
   { key: 'historial', label: 'HISTORIAL ALERTAS' },
 ];
 
+const { width } = Dimensions.get('window');
+
 const AlertasTabScreen = () => {
   const [activeTab, setActiveTab] = useState('ingresar');
-
   const router = require('expo-router').useRouter();
-return (
-  <View style={{ flex: 1, backgroundColor: '#2957a4' }}>
 
-    <View style={styles.tabBar}>
-      {TABS.map(tab => (
-        <TouchableOpacity
-          key={tab.key}
-          style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-          onPress={() => setActiveTab(tab.key)}
-        >
-          <Text style={[styles.tabLabel, activeTab === tab.key && styles.activeTabLabel]}>{tab.label}</Text>
-        </TouchableOpacity>
-      ))}
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#2B4F8C', '#2B4F8C']}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backArrow}>{'←'}</Text>
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>ALERTAS</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.tabBar}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabLabel, activeTab === tab.key && styles.activeTabLabel]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.content}>
+          {activeTab === 'ingresar' ? <AlertasScreen /> : <HistorialAlertasScreen />}
+        </View>
+      </LinearGradient>
     </View>
-    <View style={{ flex: 1 }}>
-      {activeTab === 'ingresar' ? <AlertasScreen /> : <HistorialAlertasScreen />}
-    </View>
-  </View>
-);
+  );
 };
 
 const styles = StyleSheet.create({
-  headerWrapper: {
-    backgroundColor: '#2957a4',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingBottom: 10,
-    paddingHorizontal: 0,
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
   header: {
+    width: '100%',
+    paddingTop: 20,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  headerContent: {
+    width: '100%',
+    maxWidth: 500,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
   },
   headerTitleContainer: {
     flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    zIndex: -1,
+  },
+  backButton: {
+    zIndex: 1,
+    padding: 10,
+    marginLeft: -10,
+  },
+  backArrow: {
+    color: '#fff',
+    fontSize: 35,
+    fontWeight: 'bold',
   },
   headerTitle: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    letterSpacing: 1,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#2957a4',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    margin: 10,
+    borderRadius: 25,
+    overflow: 'hidden',
+    width: '90%',
+    maxWidth: 500,
+    alignSelf: 'center',
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
     alignItems: 'center',
   },
   activeTab: {
-    borderBottomColor: '#fff',
-    backgroundColor: '#2957a4',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   tabLabel: {
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
     fontWeight: 'bold',
-    fontSize: 16,
   },
   activeTabLabel: {
     color: '#fff',
-    textDecorationLine: 'underline',
+  },
+  content: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
 });
 

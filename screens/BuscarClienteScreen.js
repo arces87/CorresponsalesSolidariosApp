@@ -1,7 +1,8 @@
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
@@ -112,17 +113,25 @@ export default function BuscarClienteScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerWrapper}>
+      <LinearGradient
+        colors={['#2B4F8C', '#2BAC6B']}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backArrow}>{'←'}</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>BUSCAR CLIENTE</Text>
+          <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backArrow}>{'←'}</Text>
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>BUSCAR CLIENTE</Text>
+            </View>
           </View>
-          <View style={{width: 40}} />
         </View>
-      </View>
       <View style={styles.card}>
         <Text style={styles.instruction}>Seleccione los datos del cliente</Text>
         <Text style={styles.label}>Tipo de Identificación</Text>
@@ -248,14 +257,20 @@ export default function BuscarClienteScreen() {
           </View>
         )}
       </View>
-    </View>
+    </LinearGradient>
+  </View>
   );
 }
+
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3267b2',
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -266,32 +281,34 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   header: {
+    width: '100%',
+    paddingTop: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
+    maxWidth: 500,
+    paddingHorizontal: 20,
   },
   headerTitleContainer: {
     flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    zIndex: -1,
   },
   backButton: {
-    marginRight: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    zIndex: 1,
+    padding: 10,
+    marginLeft: -10,
   },
   backArrow: {
-    color: '#3267b2',
-    fontSize: 24,
+    color: '#fff',
+    fontSize: 35,
     fontWeight: 'bold',
   },
   headerTitle: {
@@ -301,70 +318,83 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 24,
-    marginTop: 10,
-    width: '92%',
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: '90%',
+    maxWidth: 500,
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 10,
-    elevation: 6,
-    alignSelf: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   instruction: {
-    color: '#3267b2',
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginBottom: 14,
+    fontSize: 16,
+    color: '#2B4F8C',
+    marginBottom: 20,
     textAlign: 'center',
+    fontWeight: '500',
   },
   label: {
-    color: '#3267b2',
-    fontWeight: 'bold',
     fontSize: 14,
+    color: '#2B4F8C',
     marginTop: 10,
+    marginBottom: 5,
+    fontWeight: 'bold',
   },
   input: {
     borderBottomWidth: 1,
-    borderBottomColor: '#bbb',
+    borderBottomColor: '#2B4F8C',
+    borderRadius: 0,
+    padding: 8,
+    marginBottom: 20,
     fontSize: 16,
-    paddingVertical: 6,
-    color: '#3267b2',
-    marginBottom: 5,
+    backgroundColor: 'transparent',
+    color: '#2B4F8C',
+    width: '100%',
   },
   disabledInput: {
-    backgroundColor: '#e2e6f2',
-    borderRadius: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2B4F8C',
+    borderRadius: 0,
     padding: 8,
-    marginVertical: 8,
-    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: 'transparent',
   },
   disabledText: {
-    color: '#7b7b7b',
-    fontWeight: 'bold',
-    fontSize: 17,
+    color: '#2B4F8C',
+    fontSize: 16,
+    opacity: 0.8,
+    textAlign: 'center',
   },
   button: {
-    backgroundColor: '#2957a4',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#2B4F8C',
+    padding: 16,
+    borderRadius: 25,
     alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#a0a0a0',
-    opacity: 0.7,
+    marginTop: 25,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
-    fontSize: 18,
+  },
+  buttonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.7,
   },
   errorText: {
     color: '#ff4444',
     marginTop: 10,
-    textAlign: 'center',
   },
   resultContainer: {
     marginTop: 20,
@@ -376,10 +406,10 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2957a4',
+    color: '#2B4F8C',
     marginBottom: 10,
     textAlign: 'center',
+    fontWeight: '500',
   },
   resultRow: {
     flexDirection: 'row',
@@ -405,9 +435,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
+    color: '#2B4F8C',
+    marginTop: 10,
+    marginBottom: 5,
     fontWeight: 'bold',
-    color: '#2957a4',
-    marginBottom: 10,
   },
   loadingIndicator: {
     padding: 10,
@@ -432,7 +463,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#2957a4',
+    borderColor: '#2B4F8C',
     borderRadius: 5,
     marginBottom: 15,
     overflow: 'hidden',

@@ -1,12 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
-//import styles from '../styles/globalStyles';
-import { StyleSheet } from 'react-native';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -168,14 +167,20 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topSection}>
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
-      <View style={styles.loginBox}>
+      <LinearGradient
+        colors={['#325191', '#2BAC6B']}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.topSection}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.loginBox}>
         <Text style={styles.label}>Usuario</Text>
         <TextInput
           style={[styles.input, userError && { borderColor: 'red', borderWidth: 1 }]}
@@ -224,52 +229,62 @@ export default function LoginScreen() {
             <Text style={styles.bottomText}>DEVICE ID</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 }
 
+const { width, height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3267b2',
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
+    paddingTop: 40,
   },
   topSection: {
     alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 20,
+    marginTop: 40,
+    marginBottom: 40,
   },
   logo: {
     width: 120,
     height: 120,
   },
   loginBox: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     width: '90%',
+    maxWidth: 400,
     borderRadius: 12,
-    padding: 24,
+    padding: 30,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   label: {
-    color: '#3267b2',
+    color: '#2B4F8C',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
     alignSelf: 'flex-start',
+    marginBottom: 5,
   },
   input: {
     borderBottomWidth: 1,
-    borderBottomColor: '#bbb',
+    borderBottomColor: '#2B4F8C',
     width: '100%',
     fontSize: 16,
     paddingVertical: 8,
-    marginBottom: 5,
-    color: '#3267b2',
+    marginBottom: 15,
+    color: '#2B4F8C',
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -285,13 +300,18 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   loginButton: {
-    backgroundColor: '#3267b2',
-    borderRadius: 6,
-    paddingVertical: 12,
+    backgroundColor: '#2B4F8C',
+    borderRadius: 25,
+    paddingVertical: 14,
     paddingHorizontal: 40,
     marginTop: 20,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   loginButtonText: {
     color: '#fff',
@@ -301,12 +321,14 @@ const styles = StyleSheet.create({
   bottomOptions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '80%',
+    width: '100%',
     marginTop: 30,
+    paddingHorizontal: 20,
   },
   bottomText: {
-    color: '#3267b2',
+    color: '#2B4F8C',
     fontWeight: '600',
-    marginHorizontal: 10,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });

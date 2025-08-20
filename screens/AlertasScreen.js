@@ -1,7 +1,8 @@
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
@@ -64,8 +65,8 @@ const AlertasScreen = () => {
   if (loadingCatalogos) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2957a4" />
-        <Text style={{ marginTop: 10 }}>Cargando tipos de alerta...</Text>
+        <ActivityIndicator size="large" color="#fff"/>
+        <Text style={styles.loadingText}>Cargando tipos de alerta...</Text>
       </View>
     );
   }
@@ -85,20 +86,21 @@ const AlertasScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerWrapper}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backArrow}>{'←'}</Text>
-          </TouchableOpacity>
+    <LinearGradient
+      colors={['#2B4F8C', '#2BAC6B']}
+      style={styles.gradient}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
+      <View style={styles.header}>
+        <View style={styles.headerContent}>          
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>INGRESAR ALERTA</Text>
-          </View>          
-          <View style={{ width: 40 }} />
+          </View>
         </View>
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.formContainer}>
         <Text style={styles.label}>Tipo de Alerta</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -133,76 +135,71 @@ const AlertasScreen = () => {
           <Text style={styles.buttonText}>{loading ? 'Registrando...' : 'REGISTRAR'}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-  headerWrapper: {
-    width: '92%',
-    alignSelf: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingBottom: 0,
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
   header: {
+    width: '100%',
+    paddingTop: 20,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  headerContent: {
+    width: '100%',
+    maxWidth: 500,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    marginRight: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  backArrow: {
-    color: '#3267b2',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   headerTitleContainer: {
     flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    zIndex: -1,
+    marginBottom: 15,
+  },
+  backButton: {
+    zIndex: 1,
+    padding: 10,
+    marginLeft: -10,
+  },
+  backArrow: {
+    color: '#fff',
+    fontSize: 35,
+    fontWeight: 'bold',
   },
   headerTitle: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 20,
-    flex: 1,
-  },   
-  container: {
-    flex: 1,
-    backgroundColor: '#2957a4',
-    alignItems: 'center',    
-  },
-  title: {
-    color: '#fff',
-    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 20,
-    alignSelf: 'flex-start',
-    marginLeft: 20,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+  formContainer: {
+    flex: 1,
     width: '90%',
-    marginTop: 10,
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   label: {
     color: '#2957a4',
@@ -222,24 +219,37 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#2957a4',
-    borderRadius: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2B4F8C',
+    borderRadius: 0,
     padding: 8,
-    minHeight: 80,
     marginBottom: 20,
-    textAlignVertical: 'top',
+    fontSize: 16,
+    backgroundColor: 'transparent',
+    color: '#2B4F8C',
+    width: '100%',
   },
   button: {
-    backgroundColor: '#2957a4',
-    paddingVertical: 12,
-    borderRadius: 5,
+    backgroundColor: '#2B4F8C',
+    padding: 16,
+    borderRadius: 25,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 25,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 10,
     fontSize: 16,
   },
 });

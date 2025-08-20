@@ -1,6 +1,7 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
 const menuItems = [
@@ -13,9 +14,8 @@ const menuItems = [
   { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab' },
   { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '' },
   { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '' },  
-  { label: 'CERRAR SESIÓN', icon: null, route: '/' },
+  { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/' },
 ];
-
 export default function MenuScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData } = useContext(AuthContext);
@@ -38,10 +38,20 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image source={require('../assets/logo-horizontal-blanco.png')} style={styles.logoHorizontal} resizeMode="contain" />
-      </View>
-      <ScrollView contentContainerStyle={styles.menuContainer}>
+      <LinearGradient
+        colors={['#2B4F8C', '#2BAC6B']}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.header}>
+          <Image 
+            source={require('../assets/logo-horizontal-blanco.png')} 
+            style={styles.logoHorizontal} 
+            resizeMode="contain" 
+          />
+        </View>
+        <ScrollView contentContainerStyle={styles.menuContainer}>
         {[0,2,4,6,8].map((rowIdx) => (
           <View key={rowIdx} style={styles.menuRow}>
             <TouchableOpacity style={styles.menuButton} onPress={() => menuItems[rowIdx].route && router.push(menuItems[rowIdx].route)}>
@@ -65,24 +75,28 @@ export default function MenuScreen() {
 </TouchableOpacity>
           </View>
         ))}
-      </ScrollView>
+        </ScrollView>
+      </LinearGradient>
     </View>
   );
 }
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e7eaf6',
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
   header: {
-    backgroundColor: '#3267b2',
-    flexDirection: 'column',
+    width: '100%',
+    paddingTop: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    paddingBottom: 10,
   },
   logo: {
     width: 55,
@@ -90,9 +104,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   logoHorizontal: {
-    width: 300,
-    height: 90,
-    marginBottom: 10,
+    width: width * 0.8,
+    maxWidth: 350,
+    height: 80,
+    marginVertical: 10,
   },
   headerText: {
     color: '#fff',
@@ -101,37 +116,44 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   menuContainer: {
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    padding: 10,
+    width: '100%',
+    maxWidth: 500,
+    alignItems: 'center',
   },
   menuRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 15,
+    width: '100%',
+    maxWidth: 450,
   },
   menuButton: {
-    backgroundColor: '#3267b2',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: 6,
-    borderRadius: 8,
-    paddingVertical: 18,
-    paddingHorizontal: 0,
-    minWidth: 100,
-    minHeight: 90,
+    marginHorizontal: 8,
+    borderRadius: 12,
+    paddingVertical: 15,
+    minHeight: 100,
     justifyContent: 'center',
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuIcon: {
-    width: 32,
-    height: 32,
-    marginBottom: 8,
-    tintColor: '#fff',
+    width: 36,
+    height: 36,
+    marginBottom: 10,
+    tintColor: '#2B4F8C',
   },
   menuLabel: {
-    color: '#fff',
+    color: '#2B4F8C',
     fontWeight: 'bold',
     textAlign: 'center',
     fontSize: 14,
+    paddingHorizontal: 5,
   },
 });
