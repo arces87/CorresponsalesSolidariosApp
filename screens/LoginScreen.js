@@ -75,8 +75,15 @@ export default function LoginScreen() {
     try {
 
       const response = await ApiService.login({
-        usuario: 'CTORRES',
-        contrasenia: '2025.Pruebas'
+        //VDCIS
+        //usuario: 'CTORRES',
+        //contrasenia: '2025.Pruebas'
+        
+        //PMV
+        usuario: 'CSENARVAEZPR',
+        contrasenia: 'Root123*-'
+
+        //APP
         //usuario: username.trim(),
         //contrasenia: password.trim()
       });
@@ -85,27 +92,38 @@ export default function LoginScreen() {
         throw new Error('No se recibió un token de autenticación válido');
       }
 
+      console.log('Login exitoso:', response);      
+
       if(response.cambioContrasenia){
         router.push('/cambiocontrasena');
       }
-        // 1. Guardar el token en AsyncStorage
-        await saveAuthToken(response.token);
+      
+      // 1. Guardar el token en AsyncStorage
+      await saveAuthToken(response.token);
 
-        // 2. Guardar los datos del usuario en el contexto
-        const userData = {
-          ...response,
-          loginTimestamp: Date.now(),
-          tokenExp: null,
-          usuario: username,
-          contrasenia: password
-        };
+      // 2. Guardar los datos del usuario en el contexto
+      const userData = {
+        ...response,
+        loginTimestamp: Date.now(),
+        tokenExp: null,
+        //usuario: username,
+        //contrasenia: password,
+        usuario: 'CSENARVAEZPR',
+        contrasenia: 'Root123*-',
+        /* retiro: response.jsonNegocio.retiro || null,
+        deposito: response.jsonNegocio.deposito || null,
+        prestamos: response.jsonNegocio.abonoPrestamos || null,
+        pago: response.jsonNegocio.cobroServicios || null,
+        comisiones: response.comisiones || null,   */
+      };
 
         setUserData(userData);      
 
         // 3. Obtener catálogos
         try {
           const catalogos = await ApiService.obtenerDistribuidos({
-            usuario: 'CTORRES'
+            //usuario: 'CTORRES'
+            usuario: 'CSENARVAEZPR'
             //usuario: username.trim()
           });
 

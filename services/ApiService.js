@@ -2,19 +2,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
-function getGUID(imei) {
-  let hash = 0;
-  if (!imei) return '';
-  for (let i = 0; i < imei.length; i++) {
-    hash = ((hash << 5) - hash) + imei.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(16, '0');
-}
 
-const BASE_URL = 'https://186.101.59.140:8095/api/v1.0';
-const imei = '88F33DE43A5D40F4F5C4B86397B96A0B';//Device.osInternalBuildId || Device.deviceName || '';
-const mac = '9ef8f9b213c8502b';//getGUID(imei);
+// VDCIS
+//const BASE_URL = 'https://186.101.59.140:8095/api/v1.0';
+//const imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
+//const mac = '9ef8f9b213c8502b';
+
+//PMV
+const BASE_URL = 'http://186.46.122.74:9004/api/v1.0';
+const imei = 'A7ADE24C28FA418DC3F4396F826E8BA8';
+const mac = '8a24f9d9eb936a84';
+
+// APP
+//const BASE_URL = 'https://186.101.59.140:8095/api/v1.0';
+//const imei = Device.osInternalBuildId || Device.deviceName || '';
+//const mac = getGUID(imei);
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -336,8 +338,8 @@ class ApiService {
   static async buscarCuentas({ 
     identificacion, 
     secuencialTipoIdentificacion, 
-    numeroCliente = null, 
-    secuencialEmpresa = null, 
+    numeroCliente, 
+    secuencialEmpresa, 
     usuario 
   }) {
     const url = `${BASE_URL}/Cuenta/buscarCuentas`;
@@ -388,15 +390,21 @@ class ApiService {
       } catch (e) {
         data = text;
       }
-      
+
       if (!response.ok) {
-        const mensaje = typeof data === 'object' ? data?.mensaje || 'Error al buscar cuentas' : data;
-        throw new Error(mensaje);
+        const errorMessage = data?.message || data?.mensaje || 'Error desconocido al buscar cuentas';
+        throw new Error(errorMessage);
+      }
+
+      // Validar que la respuesta tenga el formato esperado
+      if (!data || typeof data !== 'object') {
+        throw new Error('Formato de respuesta inválido');
       }
       
       // Asegurar que siempre devolvamos un objeto con el array de cuentas
       return {
-        cuentaDetallesConsolidado: data?.cuentaDetallesConsolidado || []
+        cuentaDetallesConsolidado: data.cuentaDetallesConsolidado || [],
+        ...data // Incluir cualquier otro dato que venga en la respuesta
       };
     } catch (error) {
       console.error('Error en buscarCuentas:', error);
@@ -435,6 +443,466 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error('Error en cambiarContrasena:', error);
+      throw error;
+    }
+  }
+
+  static async procesarRetiro({
+    secuencialCuenta,
+    numeroCuentaCliente,
+    tipoCuentaCliente,
+    valor,
+    nombreCliente,
+    identificacionCliente,
+    tipoIdentificacionCliente,
+    descripcion,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/Transaccion/procesarRetiro`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        secuencialCuenta,
+        numeroCuentaCliente: numeroCuentaCliente || null,
+        tipoCuentaCliente: tipoCuentaCliente || null,
+        valor,
+        nombreCliente: nombreCliente || null,
+        identificacionCliente: identificacionCliente || null,
+        tipoIdentificacionCliente,
+        descripcion: descripcion || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando procesamiento de retiro a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar el retiro (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en procesarRetiro:', error);
+      throw error;
+    }
+  }
+
+  static async procesarDeposito({
+    secuencialCuenta,
+    numeroCuentaCliente,
+    tipoCuentaCliente,
+    valor,
+    nombreCliente,
+    identificacionCliente,
+    tipoIdentificacionCliente,
+    descripcion,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/Transaccion/procesarDeposito`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        secuencialCuenta,
+        numeroCuentaCliente: numeroCuentaCliente || null,
+        tipoCuentaCliente: tipoCuentaCliente || null,
+        valor,
+        nombreCliente: nombreCliente || null,
+        identificacionCliente: identificacionCliente || null,
+        tipoIdentificacionCliente,
+        descripcion: descripcion || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando procesamiento de depósito a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar el depósito (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en procesarDeposito:', error);
+      throw error;
+    }
+  }
+
+  static async listarTiposTransacciones({
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/Transaccion/listaTipoTransaccion`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual si no se proporciona
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud !== undefined ? customLatitud : location.latitud,
+        longitud: customLongitud !== undefined ? customLongitud : location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando tipos de transacciones a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener tipos de transacciones (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      const result = responseText ? JSON.parse(responseText) : {};
+      
+      // Asegurarse de que siempre devolvamos un array en tiposTransacciones
+      if (result && !result.tiposTransacciones) {
+        result.tiposTransacciones = [];
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error en listarTiposTransacciones:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Solicita el saldo de una cuenta
+   * @param {Object} params - Parámetros de la solicitud
+   * @param {string} [params.usuario] - Nombre de usuario del corresponsal
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<number>} - Saldo de la cuenta
+   */
+ 
+  static async solicitudSaldoCuenta({
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/Usuario/solicitudSaldoCuenta`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud !== undefined ? customLatitud : location.latitud,
+        longitud: customLongitud !== undefined ? customLongitud : location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando saldo de cuenta a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener el saldo de la cuenta (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      // La respuesta debe ser un número (el saldo)
+      const saldo = responseText ? parseFloat(responseText) : 0;
+      
+      return saldo;
+    } catch (error) {
+      console.error('Error en solicitudSaldoCuenta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Solicita el envío de un código OTP al usuario o corresponsal
+   * @param {Object} params - Parámetros de la solicitud
+   * @param {string} [params.usuario] - Nombre de usuario (opcional si se proporciona identificación)
+   * @param {string} [params.identificacion] - Identificación del usuario (opcional si se proporciona usuario)
+   * @param {number} params.secuencialTipoIdentificacion - ID del tipo de identificación
+   * @param {boolean} params.paraAgente - Indica si el OTP es para el agente (true) o para el cliente (false)
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Objeto con el resultado de la solicitud
+   *   @property {boolean} otpGenerado - Indica si se generó el OTP correctamente
+   *   @property {boolean} notificationEmailError - Indica si hubo error en el envío por correo
+   *   @property {string} notificationEmailErrorMensaje - Mensaje de error del correo
+   *   @property {boolean} notificationSMSError - Indica si hubo error en el envío por SMS
+   *   @property {string} notificationSMSErrorMensaje - Mensaje de error del SMS
+   */
+  static async solicitarOtp({
+    usuario = null,
+    identificacion = null,
+    secuencialTipoIdentificacion,
+    paraAgente  } = {}) {
+    const url = `${BASE_URL}/Usuario/solicitudOtp`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      if (!usuario && !identificacion) {
+        throw new Error('Se requiere usuario o identificación');
+      }
+
+      if (secuencialTipoIdentificacion === undefined) {
+        throw new Error('El secuencial de tipo de identificación es requerido');
+      }
+
+      if (paraAgente === undefined) {
+        throw new Error('El parámetro paraAgente es requerido');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario,
+        identificacion,
+        secuencialTipoIdentificacion,
+        paraAgente,
+        imei: imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac: mac
+      };
+
+      console.log('Solicitando OTP en:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        const errorMessage = responseData?.message || `Error al solicitar el OTP (${response.status})`;
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return {
+        otpGenerado: responseData.otpGenerado || false,
+        notificationEmailError: responseData.notificationEmailError || false,
+        notificationEmailErrorMensaje: responseData.notificationEmailErrorMensaje || null,
+        notificationSMSError: responseData.notificationSMSError || false,
+        notificationSMSErrorMensaje: responseData.notificationSMSErrorMensaje || null
+      };
+    } catch (error) {
+      console.error('Error en solicitarOtp:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica un código OTP para un usuario o corresponsal
+   * @param {Object} params - Parámetros de la verificación
+   * @param {string} [params.usuario] - Nombre de usuario (opcional si se proporciona identificación)
+   * @param {string} [params.identificacion] - Identificación del usuario (opcional si se proporciona usuario)
+   * @param {string} params.otp - Código OTP a verificar
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Resultado de la verificación
+   */
+  static async verificarOtp({
+    usuario = null,
+    identificacion = null,
+    otp,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/Usuario/verificarOtp`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      if (!usuario && !identificacion) {
+        throw new Error('Se requiere usuario o identificación');
+      }
+
+      if (!otp) {
+        throw new Error('El código OTP es requerido');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario,
+        identificacion,
+        otp,
+        imei: imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac: mac
+      };
+
+      console.log('Verificando OTP en:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al verificar el OTP (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      // La API devuelve 200 en caso de éxito sin cuerpo
+      return { success: true };
+    } catch (error) {
+      console.error('Error en verificarOtp:', error);
       throw error;
     }
   }

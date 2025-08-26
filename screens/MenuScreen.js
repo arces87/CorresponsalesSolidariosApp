@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
@@ -5,16 +6,16 @@ import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacit
 import { AuthContext } from '../context/AuthContext';
 
 const menuItems = [
-  { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/buscarcliente' },
-  { label: 'DEPÓSITO', icon: require('../assets/ico-deposito.png'), route: '' },
-  { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '' },
-  { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '' },
-  { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '' },
-  { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '' },
-  { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab' },
-  { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '' },
-  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '' },  
-  { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/' },
+  { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/datostransaccion', accion: 'retiro' },
+  { label: 'DEPÓSITO', icon: require('../assets/ico-deposito.png'), route: '/datostransaccion', accion: 'deposito' },
+  { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '', accion: 'prestamo' },
+  { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '', accion: 'pago' },
+  { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '', accion: 'cuenta' },
+  { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '', accion: 'cliente' },
+  { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab', accion: 'alerta' },
+  { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '', accion: 'colecta' },
+  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '', accion: 'historial' },  
+  { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/', accion: 'cerrar' },
 ];
 export default function MenuScreen() {
   const router = useRouter();
@@ -36,6 +37,31 @@ export default function MenuScreen() {
     }
   }, []);
 
+  const handleMenuItemPress = async (menuItem) => {
+    if (menuItem.route === '/') {
+      handleLogout();
+    } else {
+      // Guardar la acción seleccionada en AsyncStorage
+      try {
+        await AsyncStorage.setItem('selectedMenuLabel', menuItem.label); 
+        await AsyncStorage.setItem('selectedMenuAccion', menuItem.accion);       
+        if (menuItem.route) {
+          router.push(menuItem.route);
+        } else {
+          Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
+        }
+      } catch (error) {
+        console.error('Error al guardar la acción del menú:', error);
+        // Continuar con la navegación a pesar del error
+        if (menuItem.route) {
+          router.push(menuItem.route);
+        } else {
+          Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
+        }
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -54,19 +80,13 @@ export default function MenuScreen() {
         <ScrollView contentContainerStyle={styles.menuContainer}>
         {[0,2,4,6,8].map((rowIdx) => (
           <View key={rowIdx} style={styles.menuRow}>
-            <TouchableOpacity style={styles.menuButton} onPress={() => menuItems[rowIdx].route && router.push(menuItems[rowIdx].route)}>
+            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuItemPress(menuItems[rowIdx])}>
               <Image source={menuItems[rowIdx].icon} style={styles.menuIcon} />
               <Text style={styles.menuLabel}>{menuItems[rowIdx].label}</Text>
             </TouchableOpacity>
             <TouchableOpacity
   style={styles.menuButton}
-  onPress={() => {
-    if (menuItems[rowIdx+1].label === 'CERRAR SESIÓN') {
-      handleLogout();
-    } else if (menuItems[rowIdx+1].route) {
-      router.push(menuItems[rowIdx+1].route);
-    }
-  }}
+  onPress={() => handleMenuItemPress(menuItems[rowIdx+1])}
 >
   {menuItems[rowIdx+1].icon && (
     <Image source={menuItems[rowIdx+1].icon} style={styles.menuIcon} />

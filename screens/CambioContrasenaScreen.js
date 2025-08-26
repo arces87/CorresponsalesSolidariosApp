@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import ApiService from '../services/ApiService';
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import ApiService from '../services/ApiService';
 
 const CambioContrasenaScreen = () => {
   const router = useRouter();
@@ -64,11 +66,24 @@ const CambioContrasenaScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>CAMBIO DE CONTRASEÑA</Text>
-      </View>
-      
-      <View style={styles.formContainer}>
+      <LinearGradient
+        colors={['#2B4F8C', '#2BAC6B']}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.topSection}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logoHorizontal}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.header}>
+          <Text style={styles.title}>CAMBIO DE CONTRASEÑA</Text>
+        </View>
+        
+        <View style={styles.formContainer}>
         <Text style={styles.label}>Ingrese su nueva contraseña</Text>
         <View style={styles.passwordContainer}>
           <TextInput
@@ -132,50 +147,75 @@ const CambioContrasenaScreen = () => {
             <Text style={styles.buttonText}>ACEPTAR</Text>
           )}
         </TouchableOpacity>
-      </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 };
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
+  topSection: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  logoHorizontal: {    
+    width: 120,
+    height: 120,
+    marginBottom: 10,
   },
   header: {
-    backgroundColor: '#2957a4',
-    padding: 20,
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 20,
   },
   title: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 30,
   },
   formContainer: {
-    padding: 20,
-    marginTop: 20,
+    width: '90%',
+    maxWidth: 450,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   label: {
-    color: '#333',
-    marginBottom: 8,
+    color: '#2B4F8C',
+    marginBottom: 10,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2B4F8C',
+    marginBottom: 20,
   },
   passwordInput: {
     flex: 1,
-    padding: 15,
+    padding: 12,
     fontSize: 16,
+    color: '#2B4F8C',
   },
   eyeIcon: {
     padding: 10,
@@ -183,17 +223,22 @@ const styles = StyleSheet.create({
   eyeIconImage: {
     width: 24,
     height: 24,
-    tintColor: '#666',
+    tintColor: '#2B4F8C',
   },
   button: {
-    backgroundColor: '#2957a4',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#2B4F8C',
+    padding: 16,
+    borderRadius: 25,
     alignItems: 'center',
     marginTop: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#a0a0a0',
+    backgroundColor: '#999',
     opacity: 0.7,
   },
   buttonText: {

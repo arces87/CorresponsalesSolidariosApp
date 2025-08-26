@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -6,9 +7,9 @@ import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextI
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
-export default function BuscarClienteScreen() {
+export default function DatosTransaccionScreen() {
   const router = useRouter();
-  const { checkSessionExpired, setUserData, catalogos, userData } = useContext(AuthContext);
+  const { checkSessionExpired, setUserData, catalogos, userData, transaccionData } = useContext(AuthContext);
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -16,9 +17,136 @@ export default function BuscarClienteScreen() {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState('');
   const [loading, setLoading] = useState(false);
   const [cargandoCuentas, setCargandoCuentas] = useState(false);
+  const [valorTransaccion, setValorTransaccion] = useState('');
+  const [menuLabel, setMenuLabel] = useState(''); 
+  const [menuAccion, setMenuAccion] = useState('');
+  
+  const handleContinuar = async () => {
+    if (!valorTransaccion) {
+      alert('Por favor ingrese un valor para la transacción');
+      return;
+    }
+
+    try {
+      const cuentatransaccion = cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada);
+      const transaccionData = {
+        numerocuenta: cuentatransaccion.codigo,
+        tipocuenta: cuentatransaccion.tipoCuentaNombre,
+        secuencialcuenta: cuentatransaccion.secuencialCuenta,
+        valor: valorTransaccion,
+        nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
+        identificacioncliente: cliente.identificacion        
+      };    
+      
+      setUserData(prevData => ({
+        ...prevData,
+        ...transaccionData
+      }));      
+      
+      if(menuAccion === 'retiro') {    
+        console.log('Retiro');           
+        /* const disponible = cuentatransaccion.disponibleParaTransaccion?.toFixed(2);
+                
+        if (Number(valorTransaccion) > Number(disponible)) {
+          alert('El valor a retirar es mayor al disponible en la cuenta del cliente');
+          return;
+        }
+        
+        setLoading(true);
+        const response = await ApiService.listarTiposTransacciones({
+          //usuario: userData?.usuario
+          //usuario: 'CTORRES'
+          usuario: 'CSENARVAEZPR'
+        });        
+       
+        if (typeof response === 'object' && response !== null) {
+          console.log('Tipos de transacciones:', response);
+          if(response.saldoCaja < Number(valorTransaccion)) {
+            alert('El saldo en caja es menor al valor de la transacción.');
+            return;
+          }
+        } else {          
+          alert('Error al obtener el saldo en caja. Por favor intente nuevamente.');
+          return;
+        } */
+          const comision = Number(userData?.comisiones?.retiro?.administracionCanal) + 
+          Number(userData?.comisiones?.retiro?.agente) + 
+          Number(userData?.comisiones?.retiro?.cooperativa);
+          router.push({
+            pathname: '/otpverificacion',
+            params: { 
+              monto: valorTransaccion,  
+              comision: comision,  
+              total: Number(valorTransaccion) + Number(comision),                
+              labelTransaccion: menuLabel,
+              accionTransaccion: menuAccion,
+              otpCliente: userData?.jsonNegocio?.retiro?.validarOtpCliente ?? false,
+              otpAgente: userData?.jsonNegocio?.retiro?.validarOtpAgente ?? false          
+            }
+          });
+      }
+      
+      if (menuAccion === 'deposito') {
+        console.log('Depósito');        
+        /* setLoading(true);
+        const saldo = await ApiService.solicitudSaldoCuenta({
+          //usuario: userData?.usuario
+          //usuario: 'CTORRES'
+          usuario: 'CSENARVAEZPR'
+        });
+        console.log('Saldo actual:', saldo);
+        if (saldo < Number(valorTransaccion)) {
+          alert('El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
+          return;
+        } */
+          const comision = Number(userData?.comisiones?.deposito?.administracionCanal) + 
+          Number(userData?.comisiones?.deposito?.agente) + 
+          Number(userData?.comisiones?.deposito?.cooperativa);
+          router.push({
+            pathname: '/otpverificacion',
+            params: {
+              monto: valorTransaccion,   
+              comision: comision,     
+              total: Number(valorTransaccion) + Number(comision),  
+              labelTransaccion: menuLabel,
+              accionTransaccion: menuAccion,
+              otpCliente: userData?.jsonNegocio?.deposito?.validarOtpCliente ?? false,
+              otpAgente: userData?.jsonNegocio?.deposito?.validarOtpAgente ?? false          
+            }
+          });
+      }      
+      
+    } catch (error) {
+      console.error('Error en handleContinuar:', error);
+      alert(`Error: ${error.message || 'Ocurrió un error al procesar la transacción'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [error, setError] = useState('');
   
   // Establecer el primer tipo de identificación por defecto al cargar los catálogos
+  // Cargar la acción del menú seleccionada
+  useEffect(() => {
+    const loadMenuAction = async () => {
+      try {
+        const accion = await AsyncStorage.getItem('selectedMenuAccion');
+        const label = await AsyncStorage.getItem('selectedMenuLabel');
+        if (accion) {
+          setMenuAccion(accion);
+        }
+        if (label) {
+          setMenuLabel(label);
+        }
+      } catch (error) {
+        console.error('Error al cargar la acción del menú:', error);
+      }
+    };
+
+    loadMenuAction();
+  }, []);
+
   useEffect(() => {
     console.log('Catálogos en BuscarClienteScreen:', catalogos);
     if (catalogos?.tiposIdentificaciones?.length > 0) {
@@ -49,24 +177,34 @@ export default function BuscarClienteScreen() {
         identificacion: identificacion.trim(),
         secuencialTipoIdentificacion: 1,
         //usuario: userData?.usuario
-        usuario: 'CTORRES'
+        //usuario: 'CTORRES'
+        usuario: 'CSENARVAEZPR'
       });
       
       setCliente(resultado);
       console.log('Cliente encontrado:', resultado);
       
       // Buscar cuentas del cliente
-      await buscarCuentasCliente(resultado.identificacion, resultado.secuencialTipoIdentificacion);
+      await buscarCuentasCliente(
+        resultado.identificacion, 
+        resultado.secuencialTipoIdentificacion,
+        resultado.numeroCliente,
+        resultado.secuencialEmpresa);
     } catch (error) {
       console.error('Error al buscar cliente:', error);
       setError(error.message || 'Error al buscar el cliente');
-      Alert.alert('Error', error.message || 'No se pudo encontrar el cliente');
+      alert('Error', error.message || 'No se pudo encontrar el cliente');
     } finally {
       setLoading(false);
     }
   };
 
-  const buscarCuentasCliente = async (identificacion, secuencialTipoIdentificacion) => {
+  const buscarCuentasCliente = async (
+    identificacion, 
+    secuencialTipoIdentificacion,
+    numeroCliente,
+    secuencialEmpresa
+  ) => {
     if (!identificacion || !secuencialTipoIdentificacion) return;
     
     setCargandoCuentas(true);
@@ -77,7 +215,10 @@ export default function BuscarClienteScreen() {
       const resultado = await ApiService.buscarCuentas({
         identificacion,
         secuencialTipoIdentificacion,
-        usuario: userData?.usuario || 'USUARIO_DEFAULT'
+        numeroCliente,
+        secuencialEmpresa,
+        //usuario: userData?.usuario 
+        usuario: 'CSENARVAEZPR'
       });
       
       console.log('Cuentas encontradas:', resultado);
@@ -128,12 +269,14 @@ export default function BuscarClienteScreen() {
               <Text style={styles.backArrow}>{'←'}</Text>
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>BUSCAR CLIENTE</Text>
+              <Text style={styles.headerTitle}>{'DATOS TRANSACCIÓN ' + menuLabel}</Text>
             </View>
           </View>
         </View>
       <View style={styles.card}>
-        <Text style={styles.instruction}>Seleccione los datos del cliente</Text>
+        <Text style={styles.instruction}>
+          {'Seleccione los datos de la transacción'}
+        </Text>
         <Text style={styles.label}>Tipo de Identificación</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -159,11 +302,7 @@ export default function BuscarClienteScreen() {
           placeholder="Ingrese el número de identificación"
           keyboardType="numeric"
           editable={!loading}
-        />
-        <Text style={styles.label}>Institución:</Text>
-        <View style={styles.disabledInput}>
-          <Text style={styles.disabledText}>LOS ANDES</Text>
-        </View>
+        />        
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleBuscarCliente}
@@ -172,7 +311,7 @@ export default function BuscarClienteScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>CONSULTAR</Text>
+            <Text style={styles.buttonText}>BUSCAR CLIENTE</Text>
           )}
         </TouchableOpacity>
 
@@ -190,23 +329,7 @@ export default function BuscarClienteScreen() {
             <View style={styles.resultRow}>
               <Text style={styles.resultLabel}>Apellidos:</Text>
               <Text style={styles.resultValue}>{cliente.apellidos || 'No disponible'}</Text>
-            </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Identificación:</Text>
-              <Text style={styles.resultValue}>{cliente.identificacion || 'No disponible'}</Text>
-            </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Tipo:</Text>
-              <Text style={styles.resultValue}>
-                {cliente.nombreTipoIdentificacion || `Tipo ${cliente.secuencialTipoIdentificacion}` || 'No disponible'}
-              </Text>
-            </View>
-            {cliente.direccion && (
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Dirección:</Text>
-                <Text style={styles.resultValue}>{cliente.direccion}</Text>
-              </View>
-            )}
+            </View>   
             {cliente.telefono && (
               <View style={styles.resultRow}>
                 <Text style={styles.resultLabel}>Teléfono:</Text>
@@ -251,6 +374,35 @@ export default function BuscarClienteScreen() {
                   <Text style={styles.accountDetailText}>
                     Saldo disponible: ${cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
                   </Text>
+                  
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Valor de la transacción</Text>
+                    <View style={styles.currencyInputContainer}>
+                      <Text style={styles.currencySymbol}>$</Text>
+                      <TextInput
+                        style={styles.currencyInput}
+                        keyboardType="numeric"
+                        placeholder="0.00"
+                        placeholderTextColor="#999"
+                        value={valorTransaccion}
+                        onChangeText={(text) => {
+                          // Allow only numbers and one decimal point
+                          const regex = /^\d*\.?\d{0,2}$/;
+                          if (text === '' || regex.test(text)) {
+                            setValorTransaccion(text);
+                          }
+                        }}
+                      />
+                    </View>
+                    
+                    <TouchableOpacity 
+                      style={[styles.continueButton, !valorTransaccion && styles.continueButtonDisabled]}
+                      disabled={!valorTransaccion}
+                      onPress={() => handleContinuar()}
+                    >
+                      <Text style={styles.continueButtonText}>CONTINUAR</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -317,14 +469,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     flex: 1,
   },
-  card: {
-    flex: 1,
+  card: {    
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     width: '90%',
     maxWidth: 500,
     borderRadius: 12,
     padding: 25,
     marginBottom: 20,
+    marginVertical: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -456,10 +608,64 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   accountDetailText: {
-    fontSize: 14,
-    color: '#212529',
+    fontSize: 16,
+    color: '#2B4F8C',
     textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  inputContainer: {
+    width: '100%',
+    marginTop: 10,
+  },
+  currencyInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2B4F8C',
+    borderRadius: 5,
+    paddingHorizontal: 12,
+    height: 50,
+    backgroundColor: '#fff',
+  },
+  currencySymbol: {
+    fontSize: 18,
+    color: '#2B4F8C',
+    marginRight: 5,
+    fontWeight: 'bold',
+  },
+  currencyInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 18,
+    color: '#2B4F8C',
+    fontWeight: 'bold',
+  },
+  label: {
+    fontSize: 14,
+    color: '#2B4F8C',
+    marginBottom: 5,
     fontWeight: '500',
+  },
+  continueButton: {
+    backgroundColor: '#2B4F8C',
+    borderRadius: 5,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  continueButtonDisabled: {
+    backgroundColor: '#A0AEC0',
+  },
+  continueButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   pickerContainer: {
     borderWidth: 1,
