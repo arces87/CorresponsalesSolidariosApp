@@ -200,13 +200,38 @@ const OtpVerificacionScreen = () => {
           paraAgente: true
         });
       }
-      */
+     
       if(accionTransaccion === 'deposito'){
         alert('Deposito');
+        const response = await ApiService.procesarDeposito({
+          secuencialCuenta: userData?.secuencialCuenta,
+          numeroCuentaCliente: userData?.numeroCuentaCliente,
+          tipoCuentaCliente: userData?.tipoCuentaCliente,
+          valor: monto,
+          nombreCliente: userData?.nombreCliente,
+          identificacionCliente: userData?.identificacionCliente,
+          tipoIdentificacionCliente: userData?.tipoIdentificacionCliente,          
+          descripcion: accionTransaccion,
+          usuario: userData?.usuario,
+        });
+        console.log('Response:', response);
       }
-      
+      */
       if(accionTransaccion === 'retiro'){
         alert('Retiro');
+        /*
+        const response = await ApiService.procesarRetiro({
+          secuencialCuenta: userData?.secuencialCuenta,
+          numeroCuentaCliente: userData?.numeroCuentaCliente,
+          tipoCuentaCliente: userData?.tipoCuentaCliente,
+          valor: monto,
+          nombreCliente: userData?.nombreCliente,
+          identificacionCliente: userData?.identificacionCliente,
+          tipoIdentificacionCliente: userData?.tipoIdentificacionCliente,                   
+          descripcion: accionTransaccion,
+          usuario: userData?.usuario,
+        });
+        console.log('Response:', response);*/
       }
 
       router.push({
@@ -218,12 +243,8 @@ const OtpVerificacionScreen = () => {
           total: total,
           referencia: 'CS-20230826-001'          
         }
-      });
+      });      
       
-      // Si llegamos hasta aquí, la verificación fue exitosa
-      alert('Transacción exitosa.');
-      // Navegar a la pantalla de éxito o siguiente paso
-      // router.replace('/transaccion-exitosa');
     } catch (error) {
       console.error('Error al verificar OTP:', error);
       alert(error.message || 'Error al verificar el código OTP');
