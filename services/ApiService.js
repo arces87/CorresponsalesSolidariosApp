@@ -195,10 +195,7 @@ class ApiService {
     try {
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) throw new Error('Sin conexión a internet');
-      const token = await this.getAuthToken();
-      console.log('Token:', token);
-      console.log('URL:', url);
-      console.log('Body:', body);
+      const token = await this.getAuthToken();      
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -927,6 +924,145 @@ class ApiService {
    * @param {string} [params.mail] - Correo electrónico
    * @param {string} [params.usuario] - Usuario que crea el registro
    * @returns {Promise<boolean>} - true si el cliente se creó correctamente
+   */
+  /**
+   * Busca los tipos de cuenta disponibles para un cliente
+   * @param {Object} params - Parámetros de búsqueda
+   * @param {number} params.secuencialCliente - ID del cliente
+   * @param {number} params.secuencialEmpresa - ID de la empresa
+   * @param {string} [params.codigoProductoVista] - Código del producto (opcional)
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @returns {Promise<Array>} - Lista de tipos de cuenta disponibles
+   */
+  static async buscarTipoCuenta({
+    secuencialCliente,
+    secuencialEmpresa,
+    codigoProductoVista,
+    usuario
+  } = {}) {
+    const url = `${BASE_URL}/Cuenta/buscarTipoCuenta`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      const body = {
+        secuencialCliente,
+        secuencialEmpresa,
+        codigoProductoVista,
+        usuario,
+        imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac,
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If we can't parse the error as JSON, use the default error message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = responseText ? JSON.parse(responseText) : {};
+      return result.tiposCuenta || [];
+    } catch (error) {
+      console.error('Error en buscarTipoCuenta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crea una nueva cuenta para un cliente
+   * @param {Object} params - Parámetros para la creación de la cuenta
+   * @param {string} params.codigoTipoCuenta - Código del tipo de cuenta a crear
+   * @param {number} params.secuencialCliente - ID del cliente
+   * @param {string} [params.usuario] - Usuario que realiza la operación
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Respuesta con las cuentas creadas
+   */
+  static async crearCuenta({
+    codigoTipoCuenta,
+    secuencialCliente,
+    usuario  
+  } = {}) {
+    const url = `${BASE_URL}/Cuenta/crearCuenta`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      const body = {
+        codigoTipoCuenta,
+        secuencialCliente,
+        usuario,
+        imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac,
+      };
+
+      console.log('body:', body);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      console.log('response:', response);
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // Si no podemos parsear el error como JSON, usamos el mensaje de error por defecto
+        }
+        throw new Error(errorMessage);
+      }
+
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en crearCuenta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crea un nuevo cliente en el sistema
    */
   static async crearCliente(params = {}) {
     const url = `${BASE_URL}/Cliente/crearCliente`;
