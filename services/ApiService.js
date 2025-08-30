@@ -906,6 +906,99 @@ class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Crea un nuevo cliente en el sistema
+   * @param {Object} params - Datos del cliente a crear
+   * @param {number} [params.secuencialTipoIdentificacion] - ID del tipo de identificación
+   * @param {string} [params.identificacion] - Número de identificación
+   * @param {string} [params.nombres] - Nombres del cliente
+   * @param {string} [params.apellidoPaterno] - Apellido paterno
+   * @param {string} [params.apellidoMaterno] - Apellido materno
+   * @param {boolean} [params.esMasculino] - true para masculino, false para femenino
+   * @param {string} [params.fechaNacimiento] - Fecha de nacimiento (formato ISO 8601)
+   * @param {string} [params.telefonoDomicilio] - Teléfono fijo
+   * @param {string} [params.telefonoCelular] - Número de celular
+   * @param {string} [params.direccionDomiciliaria] - Dirección de domicilio
+   * @param {string} [params.referenciaDomiciliaria] - Referencia de domicilio
+   * @param {string} [params.codigoPais] - Código de país (ej: 'EC')
+   * @param {string} [params.codigoEstadoCivil] - Código de estado civil
+   * @param {string} [params.codigoDactilar] - Código dactilar
+   * @param {string} [params.mail] - Correo electrónico
+   * @param {string} [params.usuario] - Usuario que crea el registro
+   * @returns {Promise<boolean>} - true si el cliente se creó correctamente
+   */
+  static async crearCliente(params = {}) {
+    const url = `${BASE_URL}/Cliente/crearCliente`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const token = await this.getAuthToken();
+      const location = await LocationService.getLocation();
+      
+      const requestData = {
+        secuencialTipoIdentificacion: params.secuencialTipoIdentificacion || null,
+        identificacion: params.identificacion || null,
+        nombres: params.nombres || null,
+        apellidoPaterno: params.apellidoPaterno || null,
+        apellidoMaterno: params.apellidoMaterno || null,
+        esMasculino: params.esMasculino !== undefined ? params.esMasculino : null,
+        fechaNacimiento: params.fechaNacimiento ? new Date(params.fechaNacimiento).toISOString() : null,
+        telefonoDomicilio: params.telefonoDomicilio || null,
+        telefonoCelular: params.telefonoCelular || null,
+        direccionDomiciliaria: params.direccionDomiciliaria || null,
+        referenciaDomiciliaria: params.referenciaDomiciliaria || null,
+        codigoPais: params.codigoPais || null,
+        codigoEstadoCivil: params.codigoEstadoCivil || null,
+        codigoDactilar: params.codigoDactilar || null,
+        mail: params.mail || null,
+        usuario: params.usuario || null,
+        imei: imei,
+        mac: mac,
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+
+      console.log('Solicitando creación de cliente:', url);
+      console.log('Datos del cliente:', JSON.stringify(requestData, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = 'Error al crear el cliente';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // La API devuelve un booleano como texto plano o JSON
+      try {
+        return JSON.parse(responseText);
+      } catch (e) {
+        return responseText === 'true';
+      }
+    } catch (error) {
+      console.error('Error en crearCliente:', error);
+      throw error;
+    }
+  }
 }
 
 export default ApiService;
