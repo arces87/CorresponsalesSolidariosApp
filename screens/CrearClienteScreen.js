@@ -442,9 +442,9 @@ export default function CrearClienteScreen() {
                                 >                                    
                                     {catalogos?.estadoCivil?.map((estado) => (
                                         <Picker.Item 
-                                            key={estado.id} 
+                                            key={estado.codigo} 
                                             label={estado.nombre} 
-                                            value={String(estado.id)} 
+                                            value={String(estado.codigo)} 
                                         />
                                     ))}
                                 </Picker>
