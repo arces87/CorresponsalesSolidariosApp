@@ -175,7 +175,7 @@ export default function DatosTransaccionScreen() {
     try {
       const resultado = await ApiService.buscarCliente({
         identificacion: identificacion.trim(),
-        secuencialTipoIdentificacion: 1,
+        secuencialTipoIdentificacion: parseInt(tipoId, 10),
         //usuario: userData?.usuario
         //usuario: 'CTORRES'
         usuario: 'CSENARVAEZPR'
@@ -266,7 +266,7 @@ export default function DatosTransaccionScreen() {
               style={styles.backButton} 
               onPress={() => router.back()}
             >
-              <Text style={styles.backArrow}>{'←'}</Text>
+              <Text style={styles.backArrow}>‹</Text>              
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>{'DATOS TRANSACCIÓN ' + menuLabel}</Text>
@@ -287,9 +287,9 @@ export default function DatosTransaccionScreen() {
           >
             {catalogos?.tiposIdentificaciones?.map((tipo) => (
               <Picker.Item 
-                key={tipo.id} 
+                key={tipo.secuencial} 
                 label={tipo.nombre} 
-                value={String(tipo.id)} 
+                value={String(tipo.secuencial)} 
               />
             ))}
           </Picker>
