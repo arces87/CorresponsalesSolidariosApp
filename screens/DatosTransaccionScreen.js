@@ -30,7 +30,7 @@ export default function DatosTransaccionScreen() {
     try {
       const cuentatransaccion = cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada);
       const transaccionData = {
-        numerocuenta: cuentatransaccion.codigo,
+        numerocuentacliente: cuentatransaccion.codigo,
         tipocuenta: cuentatransaccion.tipoCuentaNombre,
         secuencialcuenta: cuentatransaccion.secuencialCuenta,
         valor: valorTransaccion,
@@ -151,7 +151,7 @@ export default function DatosTransaccionScreen() {
     console.log('Catálogos en BuscarClienteScreen:', catalogos);
     if (catalogos?.tiposIdentificaciones?.length > 0) {
       console.log('Tipos de identificación encontrados:', catalogos.tiposIdentificaciones);
-      setTipoId(String(catalogos.tiposIdentificaciones[0].id));
+      setTipoId(String(catalogos.tiposIdentificaciones[0].secuencial));
     } else {
       console.log('No se encontraron tipos de identificación en los catálogos');
     }
@@ -247,7 +247,7 @@ export default function DatosTransaccionScreen() {
 
   useEffect(() => {
     if (checkSessionExpired()) {
-      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      alert('Por seguridad, tu sesión ha finalizado.');
       handleLogout();
     }
   }, []);

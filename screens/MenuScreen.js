@@ -8,13 +8,13 @@ import { AuthContext } from '../context/AuthContext';
 const menuItems = [
   { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/datostransaccion', accion: 'retiro' },
   { label: 'DEPÓSITO', icon: require('../assets/ico-deposito.png'), route: '/datostransaccion', accion: 'deposito' },
-  { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '', accion: 'prestamo' },
+  { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '/datostransaccionprestamo', accion: 'prestamo' },
   { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '', accion: 'pago' },
   { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '/crearcuenta', accion: 'cuenta' },
   { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '/crearcliente', accion: 'cliente' },
   { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab', accion: 'alerta' },
   { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '', accion: 'colecta' },
-  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '', accion: 'historial' },  
+  { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '/historialtransacciones', accion: 'historial' },  
   { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/', accion: 'cerrar' },
 ];
 export default function MenuScreen() {

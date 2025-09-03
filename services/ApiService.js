@@ -1062,6 +1062,204 @@ class ApiService {
   }
 
   /**
+   * Efectiviza un pago de préstamo
+   * @param {Object} params - Parámetros para el pago del préstamo
+   * @param {number} params.secuencialCuentaCliente - ID de la cuenta del cliente
+   * @param {string} [params.numeroPrestamo] - Número del préstamo (opcional)
+   * @param {number} params.valor - Valor del pago
+   * @param {string} [params.nombreCliente] - Nombre del cliente (opcional)
+   * @param {string} [params.identificacionCliente] - Identificación del cliente (opcional)
+   * @param {string} [params.concepto] - Concepto del pago (opcional)
+   * @param {string} [params.usuario] - Usuario que realiza la operación
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Respuesta con el resultado de la operación
+   * @property {string} [numeroPrestamo] - Número del préstamo procesado
+   * @property {string} [numeroDocumento] - Número de documento generado
+   * @property {string} [fecha] - Fecha de la transacción
+   * @property {number} [valor] - Valor del pago
+   * @property {number} [saldoPrestamo] - Saldo restante del préstamo
+   * @property {number} [saldoCuentaCorresponsal] - Saldo actual de la cuenta del corresponsal
+   */
+  static async efectivizarPrestamo({
+    secuencialCuentaCliente,
+    numeroPrestamo = null,
+    valor,
+    nombreCliente = null,
+    identificacionCliente = null,
+    concepto = null,
+    usuario = null,
+    imei = null,
+    latitud = null,
+    longitud = null,
+    mac = null
+  } = {}) {
+    const url = `${BASE_URL}/Prestamo/efectivizarPrestamos`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        secuencialCuentaCliente: parseInt(secuencialCuentaCliente, 10),
+        numeroPrestamo,
+        valor: parseFloat(valor),
+        nombreCliente,
+        identificacionCliente,
+        concepto: concepto || 'Pago de préstamo',
+        usuario: usuario,
+        imei: imei,
+        latitud: location.latitud || 0,
+        longitud: location.longitud || 0,
+        mac: mac
+      };
+
+      console.log('Solicitando efectivización de préstamo a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(body)
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al efectivizar el préstamo (${response.status})`;
+        try {
+          const errorData = responseText ? JSON.parse(responseText) : {};
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Error al parsear respuesta de error:', e);
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Intentar parsear la respuesta como JSON
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        return data;
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+    } catch (error) {
+      console.error('Error en efectivizarPrestamo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lista los préstamos de un cliente
+   * @param {Object} params - Parámetros de la consulta
+   * @param {string} [params.identificacion] - Identificación del cliente (opcional)
+   * @param {boolean} [params.estaActiva=true] - Indica si buscar préstamos activos (true) o inactivos (false)
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Respuesta con la lista de préstamos
+   * @property {Array<Object>} [informacionPrestamos] - Lista de préstamos
+   *   @property {number} secuencial - ID secuencial del préstamo
+   *   @property {string} [codigo] - Código del préstamo
+   *   @property {string} [tipo] - Tipo de préstamo
+   *   @property {number} deudaInicial - Monto inicial del préstamo
+   *   @property {number} saldo - Saldo actual del préstamo
+   *   @property {string} [adjudicado] - Fecha de adjudicación
+   *   @property {string} [estado] - Estado actual del préstamo
+   */
+  static async listarPrestamos({
+    identificacion = null,
+    estaActiva = true,
+    usuario = null,
+    imei = null,
+    latitud = null,
+    longitud = null,
+    mac = null
+  } = {}) {
+    const url = `${BASE_URL}/Prestamo/listarPrestamos`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        identificacion,
+        estaActiva,
+        usuario,
+        imei: imei || this.imei,
+        latitud: latitud || location.latitud || 0,
+        longitud: longitud || location.longitud || 0,
+        mac: mac || this.mac
+      };
+
+      console.log('Solicitando lista de préstamos a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(body)
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener la lista de préstamos (${response.status})`;
+        try {
+          const errorData = responseText ? JSON.parse(responseText) : {};
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Error al parsear respuesta de error:', e);
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Intentar parsear la respuesta como JSON
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        // Asegurar que siempre devolvamos un objeto con el array de préstamos
+        return {
+          informacionPrestamos: data.informacionPrestamos || [],
+          ...data // Incluir cualquier otro dato que venga en la respuesta
+        };
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+    } catch (error) {
+      console.error('Error en listarPrestamos:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Crea un nuevo cliente en el sistema
    */
   static async crearCliente(params = {}) {
@@ -1132,6 +1330,67 @@ class ApiService {
       }
     } catch (error) {
       console.error('Error en crearCliente:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el historial de transacciones según los filtros especificados
+   * @param {Object} params - Parámetros de búsqueda
+   * @param {Date} params.fechaInicio - Fecha de inicio del rango de búsqueda
+   * @param {Date} params.fechaFin - Fecha de fin del rango de búsqueda
+   * @param {string} params.usuario - Usuario que realiza la consulta
+   * @returns {Promise<Object>} - Lista de transacciones que coinciden con los filtros
+   */
+  static async obtenerTransacciones({ fechaInicio, fechaFin, usuario }) {
+    const url = `${BASE_URL}/Historial/obtenerTransacciones`;
+    
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+      
+      const location = await LocationService.getLocation();
+      
+      // Formatear fechas a ISO string
+      const fechaInicioISO = fechaInicio.toISOString();
+      const fechaFinISO = fechaFin.toISOString();
+     
+      const body = {
+        fechaInicio: fechaInicioISO,
+        fechaFin: fechaFinISO,
+        usuario: usuario || null,
+        imei: imei,
+        mac: mac,
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+      
+      console.log('Solicitando historial de transacciones a:', url);
+      console.log('Parámetros de búsqueda:', JSON.stringify(body, null, 2));
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al obtener el historial de transacciones');
+      }
+      
+      const data = await response.json();
+      return data;
+      
+    } catch (error) {
+      console.error('Error en obtenerTransacciones:', error);
       throw error;
     }
   }
