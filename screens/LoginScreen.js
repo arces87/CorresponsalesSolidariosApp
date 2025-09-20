@@ -74,18 +74,9 @@ export default function LoginScreen() {
     
     try {
 
-      const response = await ApiService.login({
-        //VDCIS
-        //usuario: 'CTORRES',
-        //contrasenia: '2025.Pruebas'
-        
-        //PMV
-        usuario: 'CSENARVAEZPR',
-        contrasenia: 'Root123*-'
-
-        //APP
-        //usuario: username.trim(),
-        //contrasenia: password.trim()
+      const response = await ApiService.login({ 
+        usuario: username.trim(),
+        contrasenia: password.trim()
       });
 
       if (!response?.token) {
@@ -106,10 +97,8 @@ export default function LoginScreen() {
         ...response,
         loginTimestamp: Date.now(),
         tokenExp: null,
-        //usuario: username,
-        //contrasenia: password,
-        usuario: 'CSENARVAEZPR',
-        contrasenia: 'Root123*-',
+        usuario: username,
+        contrasenia: password,       
         /* retiro: response.jsonNegocio.retiro || null,
         deposito: response.jsonNegocio.deposito || null,
         prestamos: response.jsonNegocio.abonoPrestamos || null,
@@ -121,10 +110,8 @@ export default function LoginScreen() {
 
         // 3. Obtener catálogos
         try {
-          const catalogos = await ApiService.obtenerDistribuidos({
-            //usuario: 'CTORRES'
-            usuario: 'CSENARVAEZPR'
-            //usuario: username.trim()
+          const catalogos = await ApiService.obtenerDistribuidos({            
+            usuario: username.trim()
           });
 
           if (catalogos) {

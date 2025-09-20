@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 
 const menuItems = [
@@ -13,13 +14,25 @@ const menuItems = [
   { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '/crearcuenta', accion: 'cuenta' },
   { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '/crearcliente', accion: 'cliente' },
   { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab', accion: 'alerta' },
-  { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '', accion: 'colecta' },
+  { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '/hojacolecta', accion: 'colecta' },
   { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '/historialtransacciones', accion: 'historial' },  
   { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/', accion: 'cerrar' },
 ];
+
 export default function MenuScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData } = useContext(AuthContext);
+
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+
+  // Escalas simples basadas en un diseño guía ~375x812
+  const hScale = width / 375;
+  const vScale = height / 812;
+  const mScale = (size) => Math.round(size * Math.min(1.15, Math.max(0.9, hScale)));
+  const itemMinHeight = Math.max(100, Math.round(height * 0.12));
+  const logoWidth = Math.min(Math.round(width * 0.8), 350);
+  const iconSize = Math.round(36 * Math.min(1.2, Math.max(0.9, hScale)));
 
   const handleLogout = async () => {
     setUserData(null);
@@ -63,45 +76,46 @@ export default function MenuScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#2B4F8C', '#2BAC6B']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
           <Image 
             source={require('../assets/logo-horizontal-blanco.png')} 
-            style={styles.logoHorizontal} 
+            style={[styles.logoHorizontal, { width: logoWidth }]}
             resizeMode="contain" 
           />
         </View>
-        <ScrollView contentContainerStyle={styles.menuContainer}>
+        <ScrollView contentContainerStyle={[
+          styles.menuContainer,
+          { paddingBottom: insets.bottom + 16, paddingHorizontal: Math.round(12 * hScale) }
+        ]}>
         {[0,2,4,6,8].map((rowIdx) => (
           <View key={rowIdx} style={styles.menuRow}>
-            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuItemPress(menuItems[rowIdx])}>
-              <Image source={menuItems[rowIdx].icon} style={styles.menuIcon} />
-              <Text style={styles.menuLabel}>{menuItems[rowIdx].label}</Text>
+            <TouchableOpacity style={[styles.menuButton, { minHeight: itemMinHeight, paddingVertical: Math.round(15 * vScale) }]} onPress={() => handleMenuItemPress(menuItems[rowIdx])}>
+              <Image source={menuItems[rowIdx].icon} style={[styles.menuIcon, { width: iconSize, height: iconSize }]} />
+              <Text style={[styles.menuLabel, { fontSize: mScale(14) }]}>{menuItems[rowIdx].label}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-  style={styles.menuButton}
-  onPress={() => handleMenuItemPress(menuItems[rowIdx+1])}
->
-  {menuItems[rowIdx+1].icon && (
-    <Image source={menuItems[rowIdx+1].icon} style={styles.menuIcon} />
-  )}
-  <Text style={styles.menuLabel}>{menuItems[rowIdx+1].label}</Text>
-</TouchableOpacity>
+              style={[styles.menuButton, { minHeight: itemMinHeight, paddingVertical: Math.round(15 * vScale) }]}
+              onPress={() => handleMenuItemPress(menuItems[rowIdx+1])}
+            >
+              {menuItems[rowIdx+1].icon && (
+                <Image source={menuItems[rowIdx+1].icon} style={[styles.menuIcon, { width: iconSize, height: iconSize }]} />
+              )}
+              <Text style={[styles.menuLabel, { fontSize: mScale(14) }]}>{menuItems[rowIdx+1].label}</Text>
+            </TouchableOpacity>
           </View>
         ))}
         </ScrollView>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -114,7 +128,6 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
     alignItems: 'center',
     paddingBottom: 10,
   },
@@ -124,7 +137,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   logoHorizontal: {
-    width: width * 0.8,
     maxWidth: 350,
     height: 80,
     marginVertical: 10,
@@ -154,8 +166,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 8,
     borderRadius: 12,
-    paddingVertical: 15,
-    minHeight: 100,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

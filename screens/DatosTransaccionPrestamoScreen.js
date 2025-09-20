@@ -45,9 +45,7 @@ export default function DatosTransaccionPrestamoScreen() {
       console.log('Prestamos');
       setLoading(true);
       const saldo = await ApiService.solicitudSaldoCuenta({
-        //usuario: userData?.usuario
-        //usuario: 'CTORRES'
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario        
       });
       console.log('Saldo actual:', saldo);
       if (saldo < Number(valorTransaccion)) {
@@ -130,9 +128,7 @@ export default function DatosTransaccionPrestamoScreen() {
       const resultado = await ApiService.buscarCliente({
         identificacion: identificacion.trim(),
         secuencialTipoIdentificacion: parseInt(tipoId, 10),
-        //usuario: userData?.usuario
-        //usuario: 'CTORRES'
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario        
       });
 
       setCliente(resultado);
@@ -165,8 +161,7 @@ export default function DatosTransaccionPrestamoScreen() {
       const resultado = await ApiService.listarPrestamos({
         identificacion,
         estaActiva,
-        //usuario: userData?.usuario 
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario        
       });
 
       console.log('Cuentas encontradas:', resultado);

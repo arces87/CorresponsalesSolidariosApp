@@ -2,19 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
-
-// VDCIS
-//const BASE_URL = 'https://186.101.59.140:8095/api/v1.0';
-//const imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-//const mac = '9ef8f9b213c8502b';
-
 //PMV
 const BASE_URL = 'http://186.46.122.74:9004/api/v1.0';
+//const BASE_URL = 'http://localhost:5001/api/v1.0';
 const imei = 'A7ADE24C28FA418DC3F4396F826E8BA8';
 const mac = '8a24f9d9eb936a84';
 
 // APP
-//const BASE_URL = 'https://186.101.59.140:8095/api/v1.0';
+//const BASE_URL = 'http://186.5.29.68:9731/api/v1.0';
 //const imei = Device.osInternalBuildId || Device.deviceName || '';
 //const mac = getGUID(imei);
 
@@ -1391,6 +1386,104 @@ class ApiService {
       
     } catch (error) {
       console.error('Error en obtenerTransacciones:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene la lista de tipos de transacciones disponibles
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Nombre de usuario
+   * @returns {Promise<Object>} - Objeto con la lista de tipos de transacciones y saldo de caja
+   */
+  static async obtenerTiposTransacciones({ usuario }) {
+    const url = `${BASE_URL}/Transaccion/listaTipoTransaccion`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+      
+      const location = await LocationService.getLocation();
+      const body = {
+        usuario: usuario || null,
+        imei,
+        mac,
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+      
+      console.log('Solicitando tipos de transacciones a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al obtener tipos de transacciones');
+      }
+
+      const data = await response.json();
+      console.log('Tipos de transacciones recibidos:', JSON.stringify(data, null, 2));
+      return data;
+    } catch (error) {
+      console.error('Error en obtenerTiposTransacciones:', error);
+      throw error;
+    }
+  }  
+
+  /**
+   * Obtiene las transacciones para la hoja de colecta
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Nombre de usuario
+   * @returns {Promise<Object>} - Objeto con la lista de transacciones de la hoja de colecta
+   */
+  static async obtenerTransaccionesHojaColecta({ usuario }) {
+    const url = `${BASE_URL}/HojaColecta/obtenerTransacciones`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+      
+      const location = await LocationService.getLocation();
+      const body = {
+        usuario: usuario || null,
+        imei,
+        mac,
+        latitud: location.latitud,
+        longitud: location.longitud
+      };
+
+      console.log('Solicitando transacciones de hoja de colecta a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error HTTP: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error en obtenerTransaccionesHojaColecta:', error);
       throw error;
     }
   }

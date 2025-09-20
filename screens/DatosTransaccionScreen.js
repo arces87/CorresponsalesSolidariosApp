@@ -54,9 +54,7 @@ export default function DatosTransaccionScreen() {
         
         setLoading(true);
         const response = await ApiService.listarTiposTransacciones({
-          //usuario: userData?.usuario
-          //usuario: 'CTORRES'
-          usuario: 'CSENARVAEZPR'
+          usuario: userData?.usuario          
         });        
        
         if (typeof response === 'object' && response !== null) {
@@ -90,9 +88,7 @@ export default function DatosTransaccionScreen() {
         console.log('Depósito');        
         /* setLoading(true);
         const saldo = await ApiService.solicitudSaldoCuenta({
-          //usuario: userData?.usuario
-          //usuario: 'CTORRES'
-          usuario: 'CSENARVAEZPR'
+          usuario: userData?.usuario          
         });
         console.log('Saldo actual:', saldo);
         if (saldo < Number(valorTransaccion)) {
@@ -176,9 +172,7 @@ export default function DatosTransaccionScreen() {
       const resultado = await ApiService.buscarCliente({
         identificacion: identificacion.trim(),
         secuencialTipoIdentificacion: parseInt(tipoId, 10),
-        //usuario: userData?.usuario
-        //usuario: 'CTORRES'
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario        
       });
       
       setCliente(resultado);
@@ -217,8 +211,7 @@ export default function DatosTransaccionScreen() {
         secuencialTipoIdentificacion,
         numeroCliente,
         secuencialEmpresa,
-        //usuario: userData?.usuario 
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario         
       });
       
       console.log('Cuentas encontradas:', resultado);

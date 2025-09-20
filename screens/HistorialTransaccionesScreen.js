@@ -2,12 +2,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function HistorialTransaccionesScreen() {
   const router = useRouter();
+  const { userData } = useContext(AuthContext);
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
@@ -37,8 +39,7 @@ export default function HistorialTransaccionesScreen() {
       const resultado = await ApiService.obtenerTransacciones({
         fechaInicio,
         fechaFin,
-        //usuario: userData?.usuario 
-        usuario: 'CSENARVAEZPR'
+        usuario: userData?.usuario         
       });
       
       return resultado.transacciones || [];
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     width: '100%',
-    paddingBottom: 30,
+    paddingBottom: 15,
   },
   resultadosContainer: {
     backgroundColor: 'white',

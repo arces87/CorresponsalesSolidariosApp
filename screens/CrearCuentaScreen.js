@@ -28,9 +28,8 @@ export default function CrearCuentaScreen() {
       const tiposCuenta = await ApiService.buscarTipoCuenta({
         secuencialCliente,
         secuencialEmpresa,
-        codigoProductoVista: '1',
-        usuario: 'CSENARVAEZPR',
-        //usuario: userData?.usuario
+        codigoProductoVista: '1',        
+        usuario: userData?.usuario
       });
       
       console.log('Tipos de cuenta encontrados:', tiposCuenta);
@@ -88,9 +87,7 @@ export default function CrearCuentaScreen() {
         const resultado = await ApiService.buscarCliente({
           identificacion: identificacion.trim(),
           secuencialTipoIdentificacion: parseInt(tipoId),          
-          //usuario: userData?.usuario
-          //usuario: 'CTORRES'
-          usuario: 'CSENARVAEZPR'
+          usuario: userData?.usuario          
         });
         
         setCliente(resultado);
@@ -130,8 +127,7 @@ export default function CrearCuentaScreen() {
       const response = await ApiService.crearCuenta({
         codigoTipoCuenta: tipoCuenta,
         secuencialCliente: cliente.secuencialCliente,
-        //usuario: userData?.usuario,
-        usuario: 'CSENARVAEZPR',        
+        usuario: userData?.usuario,             
       });
 
       console.log('Respuesta de crearCuenta:', response);
