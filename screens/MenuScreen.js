@@ -9,14 +9,14 @@ import { AuthContext } from '../context/AuthContext';
 const menuItems = [
   { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/datostransaccion', accion: 'retiro' },
   { label: 'DEPÓSITO', icon: require('../assets/ico-deposito.png'), route: '/datostransaccion', accion: 'deposito' },
-  { label: 'PAGO DE PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '/datostransaccionprestamo', accion: 'prestamo' },
+  { label: 'PAGO PRÉSTAMOS', icon: require('../assets/ico-prestamo.png'), route: '/datostransaccionprestamo', accion: 'prestamo' },
   { label: 'PAGO A TERCEROS', icon: require('../assets/ico-terceros.png'), route: '', accion: 'pago' },
   { label: 'CUENTAS', icon: require('../assets/ico-cuentas.png'), route: '/crearcuenta', accion: 'cuenta' },
   { label: 'CLIENTES', icon: require('../assets/ico-clientes.png'), route: '/crearcliente', accion: 'cliente' },
   { label: 'ALERTAS', icon: require('../assets/ico-alertas.png'), route: '/alertastab', accion: 'alerta' },
   { label: 'HOJA DE COLECTA', icon: require('../assets/ico-colecta.png'), route: '/hojacolecta', accion: 'colecta' },
   { label: 'HISTORIAL', icon: require('../assets/ico-historial.png'), route: '/historialtransacciones', accion: 'historial' },  
-  { label: 'CERRAR SESIÓN', icon: require('../assets/ico-cerrar.png'), route: '/', accion: 'cerrar' },
+  { label: 'OBLIGACIONES', icon: require('../assets/ico-prestamo.png'), route: '/obligaciones', accion: 'obligaciones' },
 ];
 
 export default function MenuScreen() {
@@ -30,9 +30,50 @@ export default function MenuScreen() {
   const hScale = width / 375;
   const vScale = height / 812;
   const mScale = (size) => Math.round(size * Math.min(1.15, Math.max(0.9, hScale)));
-  const itemMinHeight = Math.max(100, Math.round(height * 0.12));
+  const itemMinHeight = Math.max(80, Math.round(height * 0.09));
   const logoWidth = Math.min(Math.round(width * 0.8), 350);
-  const iconSize = Math.round(36 * Math.min(1.2, Math.max(0.9, hScale)));
+  const iconSize = Math.round(28 * Math.min(1.2, Math.max(0.9, hScale)));
+  const columns = width >= 768 ? 3 : 2;
+  const percentWidth = columns === 3 ? '26%' : '42%';
+
+  // Función para generar estilos responsivos
+  const getResponsiveStyles = () => {
+    const responsiveScale = Math.min(1.15, Math.max(0.9, width / 375));
+    return {
+      menuGrid: {
+        width: '100%',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-evenly',
+        rowGap: Math.round(10 * responsiveScale),
+      },
+      menuButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        alignItems: 'center',
+        borderRadius: 12,
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+        paddingHorizontal: Math.round(12 * responsiveScale),
+      },
+      menuIcon: {
+        marginBottom: Math.round(6 * responsiveScale),
+        // tintColor: '#2B4F8C', // Comentar para evitar problemas con íconos que no son monocromáticos
+      },
+      menuLabel: {
+        color: '#2B4F8C',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontSize: 14,
+        paddingHorizontal: Math.round(5 * responsiveScale),
+      },
+    };
+  };
+
+  const responsiveStyles = getResponsiveStyles();
 
   const handleLogout = async () => {
     setUserData(null);
@@ -51,26 +92,22 @@ export default function MenuScreen() {
   }, []);
 
   const handleMenuItemPress = async (menuItem) => {
-    if (menuItem.route === '/') {
-      handleLogout();
-    } else {
-      // Guardar la acción seleccionada en AsyncStorage
-      try {
-        await AsyncStorage.setItem('selectedMenuLabel', menuItem.label); 
-        await AsyncStorage.setItem('selectedMenuAccion', menuItem.accion);       
-        if (menuItem.route) {
-          router.push(menuItem.route);
-        } else {
-          Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
-        }
-      } catch (error) {
-        console.error('Error al guardar la acción del menú:', error);
-        // Continuar con la navegación a pesar del error
-        if (menuItem.route) {
-          router.push(menuItem.route);
-        } else {
-          Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
-        }
+    // Guardar la acción seleccionada en AsyncStorage
+    try {
+      await AsyncStorage.setItem('selectedMenuLabel', menuItem.label); 
+      await AsyncStorage.setItem('selectedMenuAccion', menuItem.accion);       
+      if (menuItem.route) {
+        router.push(menuItem.route);
+      } else {
+        Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
+      }
+    } catch (error) {
+      console.error('Error al guardar la acción del menú:', error);
+      // Continuar con la navegación a pesar del error
+      if (menuItem.route) {
+        router.push(menuItem.route);
+      } else {
+        Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
       }
     }
   };
@@ -94,23 +131,40 @@ export default function MenuScreen() {
           styles.menuContainer,
           { paddingBottom: insets.bottom + 16, paddingHorizontal: Math.round(12 * hScale) }
         ]}>
-        {[0,2,4,6,8].map((rowIdx) => (
-          <View key={rowIdx} style={styles.menuRow}>
-            <TouchableOpacity style={[styles.menuButton, { minHeight: itemMinHeight, paddingVertical: Math.round(15 * vScale) }]} onPress={() => handleMenuItemPress(menuItems[rowIdx])}>
-              <Image source={menuItems[rowIdx].icon} style={[styles.menuIcon, { width: iconSize, height: iconSize }]} />
-              <Text style={[styles.menuLabel, { fontSize: mScale(14) }]}>{menuItems[rowIdx].label}</Text>
-            </TouchableOpacity>
+        <View style={responsiveStyles.menuGrid}>
+          {menuItems.map((item, idx) => (
             <TouchableOpacity
-              style={[styles.menuButton, { minHeight: itemMinHeight, paddingVertical: Math.round(15 * vScale) }]}
-              onPress={() => handleMenuItemPress(menuItems[rowIdx+1])}
+              key={idx}
+              style={[
+                responsiveStyles.menuButton,
+                { width: percentWidth, minHeight: itemMinHeight, paddingVertical: Math.round(10 * vScale) }
+              ]}
+              onPress={() => handleMenuItemPress(item)}
             >
-              {menuItems[rowIdx+1].icon && (
-                <Image source={menuItems[rowIdx+1].icon} style={[styles.menuIcon, { width: iconSize, height: iconSize }]} />
+              {item.icon && (
+                <Image source={item.icon} style={[responsiveStyles.menuIcon, { width: iconSize, height: iconSize }]} />
               )}
-              <Text style={[styles.menuLabel, { fontSize: mScale(14) }]}>{menuItems[rowIdx+1].label}</Text>
+              <Text style={[responsiveStyles.menuLabel, { fontSize: mScale(13) }]} allowFontScaling={false}>
+                {item.label}
+              </Text>
             </TouchableOpacity>
-          </View>
-        ))}
+          ))}
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            { 
+              width: columns === 3 
+                ? Math.round((width - (Math.round(12 * hScale) * 2)) * 0.58) // Aproximadamente 2 botones de 26%
+                : Math.round((width - (Math.round(12 * hScale) * 2)) * 0.9) // Aproximadamente 2 botones de 42%
+            }
+          ]}
+          onPress={handleLogout}
+        >
+          <Text style={styles.logoutButtonText} allowFontScaling={false}>
+            CERRAR SESIÓN
+          </Text>
+        </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -148,23 +202,19 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   menuContainer: {
-    padding: 10,
     width: '100%',
-    maxWidth: 500,
     alignItems: 'center',
   },
-  menuRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
+  menuGrid: {
     width: '100%',
-    maxWidth: 450,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-evenly',
+    rowGap: 15,
   },
   menuButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    flex: 1,
     alignItems: 'center',
-    marginHorizontal: 8,
     borderRadius: 12,
     justifyContent: 'center',
     shadowColor: '#000',
@@ -172,12 +222,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    paddingHorizontal: 12,
   },
   menuIcon: {
-    width: 36,
-    height: 36,
     marginBottom: 10,
-    tintColor: '#2B4F8C',
+    // tintColor: '#2B4F8C', // Comentar para evitar problemas con íconos que no son monocromáticos
   },
   menuLabel: {
     color: '#2B4F8C',
@@ -185,5 +234,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     paddingHorizontal: 5,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoutButtonText: {
+    color: '#2B4F8C',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

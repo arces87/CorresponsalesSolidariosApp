@@ -3,8 +3,8 @@ import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
 //PMV
-const BASE_URL = 'http://186.46.122.74:9004/api/v1.0';
-//const BASE_URL = 'http://localhost:5001/api/v1.0';
+//const BASE_URL = 'http://186.46.122.74:9004/api/v1.0';
+const BASE_URL = 'http://localhost:5001/api/v1.0';
 const imei = 'A7ADE24C28FA418DC3F4396F826E8BA8';
 const mac = '8a24f9d9eb936a84';
 
@@ -667,13 +667,9 @@ class ApiService {
    */
  
   static async solicitudSaldoCuenta({
-    usuario,
-    imei: customImei,
-    latitud: customLatitud,
-    longitud: customLongitud,
-    mac: customMac
+    usuario    
   } = {}) {
-    const url = `${BASE_URL}/Usuario/solicitudSaldoCuenta`;
+    const url = `${BASE_URL}/Cuenta/solicitudSaldoCuenta`;
     try {
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
@@ -683,11 +679,11 @@ class ApiService {
       const location = await LocationService.getLocation();
       
       const body = {
-        usuario: usuario || null,
-        imei: customImei || imei,
-        latitud: customLatitud !== undefined ? customLatitud : location.latitud,
-        longitud: customLongitud !== undefined ? customLongitud : location.longitud,
-        mac: customMac || mac
+        usuario: usuario,
+        imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac
       };
 
       console.log('Solicitando saldo de cuenta a:', url);
@@ -1454,7 +1450,7 @@ class ApiService {
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
       }
-      
+
       const location = await LocationService.getLocation();
       const body = {
         usuario: usuario || null,
@@ -1484,6 +1480,140 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error('Error en obtenerTransaccionesHojaColecta:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene las cuentas por cobrar de un cliente
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.identificacion] - Identificación del cliente
+   * @param {string} [params.usuario] - Nombre de usuario
+   * @returns {Promise<Object>} - Objeto con los datos de cuentas por cobrar del cliente
+   */
+  static async cuentasPorCobrar({ identificacion, usuario }) {
+    const url = `${BASE_URL}/Cuenta/cuentasPorCobrar`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      const body = {
+        identificacion: identificacion || null,
+        usuario: usuario || null,
+        imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac
+      };
+
+      console.log('Solicitando cuentas por cobrar a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(body)
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errorMessage = `Error al obtener cuentas por cobrar (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        return data;
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Formato de respuesta inválido');
+      }
+    } catch (error) {
+      console.error('Error en cuentasPorCobrar:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesa el pago de cuentas por cobrar
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.identificacionCliente] - Identificación del cliente
+   * @param {Array} params.cuentasPorCobrar - Array de rubros por cobrar con secuencial y valorCobrado
+   * @param {number} params.valorAfectado - Valor total afectado
+   * @param {string} [params.usuario] - Nombre de usuario
+   * @returns {Promise<Object>} - Objeto con los documentos generados
+   */
+  static async procesaCuentasPorCobrar({ identificacionCliente, cuentasPorCobrar, valorAfectado, usuario }) {
+    const url = `${BASE_URL}/Cuenta/procesaCuentasPorCobrar`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      const body = {
+        identificacionCliente: identificacionCliente || null,
+        cuentasPorCobrar: cuentasPorCobrar || [],
+        valorAfectado: valorAfectado || 0,
+        usuario: usuario || null,
+        imei,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac
+      };
+
+      console.log('Procesando pago de cuentas por cobrar a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(body)
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errorMessage = `Error al procesar pago de cuentas por cobrar (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        return data;
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Formato de respuesta inválido');
+      }
+    } catch (error) {
+      console.error('Error en procesaCuentasPorCobrar:', error);
       throw error;
     }
   }
