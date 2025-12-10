@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AlertasScreen from './AlertasScreen';
 import HistorialAlertasScreen from './HistorialAlertasScreen';
 
@@ -14,6 +15,7 @@ const { width } = Dimensions.get('window');
 const AlertasTabScreen = () => {
   const [activeTab, setActiveTab] = useState('ingresar');
   const router = require('expo-router').useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -23,13 +25,13 @@ const AlertasTabScreen = () => {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={styles.headerContent}>
             <TouchableOpacity 
               style={styles.backButton} 
               onPress={() => router.back()}
-            >
-              <Text style={styles.backArrow}>{'←'}</Text>
+            >              
+              <Text style={styles.backArrow}>‹</Text>
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>ALERTAS</Text>
@@ -70,29 +72,27 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 10,
     alignItems: 'center',
   },
   headerContent: {
     width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   backButton: {
     zIndex: 1,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',
@@ -101,8 +101,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
   },
   tabBar: {
     flexDirection: 'row',

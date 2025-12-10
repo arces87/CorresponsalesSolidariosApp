@@ -3,12 +3,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function CrearCuentaScreen() {
   const router = useRouter();
   const { userData, catalogos } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -156,7 +158,7 @@ export default function CrearCuentaScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerWrapper}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
             <View style={styles.headerContent}>
               <TouchableOpacity
                 onPress={() => router.back()}
@@ -286,33 +288,34 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 20,
     alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
+    flex: 1,
   },
   backButton: {
     padding: 10,
     zIndex: 1,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 30,

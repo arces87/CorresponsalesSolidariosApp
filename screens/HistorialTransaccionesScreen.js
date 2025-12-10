@@ -3,13 +3,16 @@ import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function HistorialTransaccionesScreen() {
   const router = useRouter();
   const { userData } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
@@ -111,33 +114,36 @@ export default function HistorialTransaccionesScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#2B4F8C', '#2BAC6B']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
-          }
-        >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+              />
+            }
+          >
           <View style={styles.headerWrapper}>
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
               <View style={styles.headerContent}>
                 <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => router.back()}
                 >
-                  <Text style={styles.backArrow}>{'←'}</Text>
+                  <Text style={styles.backArrow}>‹</Text>                   
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
-                  <Text style={styles.headerTitle}>HISTORIAL DE TRASACCIONES</Text>
+                  <Text style={styles.headerTitle}>HISTORIAL TRANSACCIONES</Text>
                 </View>
               </View>
             </View>
@@ -274,9 +280,10 @@ export default function HistorialTransaccionesScreen() {
               )}
             </View>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -291,6 +298,9 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
   },
   formContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -315,8 +325,6 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 0,
     alignItems: 'center',
   },
   headerContent: {
@@ -325,14 +333,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    flex: 1,
     alignItems: 'center',
-    zIndex: 1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   headerTitle: {
     color: '#fff',
@@ -343,7 +350,9 @@ const styles = StyleSheet.create({
   backButton: {
     zIndex: 2,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',
@@ -359,10 +368,10 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 500,
+    width: '100%',
+    maxWidth: 560,
     borderRadius: 12,
-    padding: 20,
+    padding: 24,
     marginVertical: 20,
     marginBottom: 30,
     shadowColor: '#000',

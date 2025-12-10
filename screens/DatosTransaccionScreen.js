@@ -2,14 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function DatosTransaccionScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData, catalogos, userData, transaccionData } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -246,27 +248,29 @@ export default function DatosTransaccionScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#2B4F8C', '#2BAC6B']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backArrow}>‹</Text>              
-            </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>{'DATOS TRANSACCIÓN ' + menuLabel}</Text>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+              <View style={styles.headerContent}>
+                <TouchableOpacity 
+                  style={styles.backButton} 
+                  onPress={() => router.back()}
+                >
+                  <Text style={styles.backArrow}>‹</Text>              
+                </TouchableOpacity>
+                <View style={styles.headerTitleContainer}>
+                  <Text style={styles.headerTitle}>{'DATOS ' + menuLabel}</Text>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
-      <View style={styles.card}>
+          <View style={styles.card}>
         <Text style={styles.instruction}>
           {'Seleccione los datos de la transacción'}
         </Text>
@@ -316,22 +320,18 @@ export default function DatosTransaccionScreen() {
           <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>Datos del Cliente</Text>
             <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Nombres:</Text>
-              <Text style={styles.resultValue}>{cliente.nombres || 'No disponible'}</Text>
-            </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Apellidos:</Text>
-              <Text style={styles.resultValue}>{cliente.apellidos || 'No disponible'}</Text>
-            </View>   
+              <Text style={styles.resultLabel}>Nombre: </Text>
+              <Text style={styles.resultValue}>{cliente.nombres + cliente.apellidos || 'No disponible'}</Text>
+            </View>               
             {cliente.telefono && (
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Teléfono:</Text>
+                <Text style={styles.resultLabel}>Teléfono: </Text>
                 <Text style={styles.resultValue}>{cliente.telefono}</Text>
               </View>
             )}
             {cliente.correoElectronico && (
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Correo:</Text>
+                <Text style={styles.resultLabel}>Correo: </Text>
                 <Text style={styles.resultValue}>{cliente.correoElectronico}</Text>
               </View>
             )}
@@ -402,8 +402,10 @@ export default function DatosTransaccionScreen() {
           </View>
         )}
       </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
     </LinearGradient>
-  </View>
+  </SafeAreaView>
   );
 }
 
@@ -419,6 +421,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
   headerWrapper: {
     width: '92%',
     alignSelf: 'center',
@@ -427,8 +432,6 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 20,
     alignItems: 'center',
   },
   headerContent: {
@@ -437,19 +440,20 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     paddingHorizontal: 20,
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   backButton: {
     zIndex: 1,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',
@@ -467,7 +471,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     borderRadius: 12,
-    padding: 25,
+    padding: 24,
     marginBottom: 20,
     marginVertical: 20,
     shadowColor: '#000',
@@ -475,6 +479,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
+    alignSelf: 'center',    
   },
   instruction: {
     fontSize: 16,
@@ -518,7 +523,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#2B4F8C',
     padding: 16,
-    borderRadius: 25,
+    borderRadius: 5,
     alignItems: 'center',
     marginTop: 25,
     width: '100%',
@@ -563,8 +568,7 @@ const styles = StyleSheet.create({
   },
   resultLabel: {
     fontWeight: 'bold',
-    color: '#495057',
-    width: 120,
+    color: '#495057',    
   },
   resultValue: {
     flex: 1,

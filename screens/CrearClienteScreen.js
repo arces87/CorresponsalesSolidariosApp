@@ -4,12 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function CrearClienteScreen() {
     const router = useRouter();
     const { userData, catalogos } = useContext(AuthContext);
+    const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(false);
 
     // Estados para los campos del formulario
@@ -220,13 +222,13 @@ export default function CrearClienteScreen() {
             >
                 <ScrollView style={styles.scrollContainer}>
                     <View style={styles.headerWrapper}>
-                        <View style={styles.header}>
+                        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                             <View style={styles.headerContent}>
                                 <TouchableOpacity
                                     style={styles.backButton}
                                     onPress={() => router.back()}
                                 >
-                                    <Text style={styles.backArrow}>{'←'}</Text>
+                                    <Text style={styles.backArrow}>‹</Text>                                     
                                 </TouchableOpacity>
                                 <View style={styles.headerTitleContainer}>
                                     <Text style={styles.headerTitle}>CREAR CLIENTE</Text>
@@ -529,17 +531,13 @@ const styles = StyleSheet.create({
     },
     header: {
         width: '100%',
-        paddingTop: 20,
-        marginBottom: 0,
         alignItems: 'center',
     },
     headerTitleContainer: {
         flex: 1,
-        position: 'absolute',
-        left: 0,
-        right: 0,
         alignItems: 'center',
-        zIndex: -1,
+        justifyContent: 'center',
+        marginLeft: -20, // Compensar el ancho del botón de retroceso
     },
     headerContent: {
         flexDirection: 'row',
@@ -547,6 +545,7 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 500,
         paddingHorizontal: 20,
+        justifyContent: 'flex-start',
     },
     headerTitle: {
         color: '#fff',
@@ -557,7 +556,9 @@ const styles = StyleSheet.create({
     backButton: {
         zIndex: 1,
         padding: 10,
-        marginLeft: -10,
+        minWidth: 50, // Asegurar ancho consistente
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     backArrow: {
         color: '#fff',

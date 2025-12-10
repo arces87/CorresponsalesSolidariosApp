@@ -2,12 +2,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 const HistorialAlertasScreen = () => {
   const router = useRouter();
   const { userData } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [alertas, setAlertas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +71,7 @@ const HistorialAlertasScreen = () => {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>HISTORIAL DE ALERTAS</Text>
@@ -119,8 +121,6 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 10,
     alignItems: 'center',
   },
   headerContent: {
@@ -129,19 +129,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   backButton: {
     zIndex: 1,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',

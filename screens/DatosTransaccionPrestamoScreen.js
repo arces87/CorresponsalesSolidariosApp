@@ -4,12 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 export default function DatosTransaccionPrestamoScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData, catalogos, userData, transaccionData } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -203,7 +205,7 @@ export default function DatosTransaccionPrestamoScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={styles.headerContent}>
             <TouchableOpacity
               style={styles.backButton}
@@ -212,7 +214,7 @@ export default function DatosTransaccionPrestamoScreen() {
               <Text style={styles.backArrow}>‹</Text>
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>{'DATOS TRANSACCIÓN ' + menuLabel}</Text>
+              <Text style={styles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
           </View>
         </View>
@@ -377,29 +379,27 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 20,
     alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    maxWidth: 500,
     paddingHorizontal: 20,
+    justifyContent: 'flex-start',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   backButton: {
     zIndex: 1,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',
@@ -409,7 +409,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 20,
+    fontSize: 18,
+    textAlign: 'center',
     flex: 1,
   },
   card: {

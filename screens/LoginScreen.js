@@ -3,7 +3,8 @@ import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
@@ -83,10 +84,12 @@ export default function LoginScreen() {
         throw new Error('No se recibió un token de autenticación válido');
       }
 
-      console.log('Login exitoso:', response);      
+      console.log('Login exitoso:', response);    
+      console.log('Cambio de contraseña:', response.cambioContrasenia);
 
       if(response.cambioContrasenia){
         router.push('/cambiocontrasena');
+        return;
       }
       
       // 1. Guardar el token en AsyncStorage
@@ -171,31 +174,34 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#325191', '#2BAC6B']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.topSection}>
-          <Image
-            source={require('../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-        <View style={styles.loginBox}>
-        <Text style={styles.label}>Usuario</Text>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={20}>
+          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+            <View style={styles.topSection}>
+              <Image
+                source={require('../assets/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.loginBox}>
+        <Text style={styles.label} allowFontScaling={false}>Usuario</Text>
         <TextInput
           style={[styles.input, userError && { borderColor: 'red', borderWidth: 1 }]}
           placeholder=""
           value={username}
           onChangeText={text => { setUsername(text); if (userError && text) setUserError(false); }}
           autoCapitalize="none"
+          allowFontScaling={false}
         />
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Ingrese su clave</Text>
+        <Text style={[styles.label, { marginTop: 20 }]} allowFontScaling={false}>Ingrese su clave</Text>
         <View style={styles.passwordContainer}>
           <TextInput
             style={[styles.input, { flex: 1 }, passError && { borderColor: 'red', borderWidth: 1 }]}
@@ -203,6 +209,7 @@ export default function LoginScreen() {
             value={password}
             onChangeText={text => { setPassword(text); if (passError && text) setPassError(false); }}
             secureTextEntry={!showPassword}
+            allowFontScaling={false}
           />
           <TouchableOpacity 
             style={styles.eyeIcon}
@@ -223,20 +230,22 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={loading}
         >
-          <Text style={styles.loginButtonText}>{loading ? 'Autenticando...' : 'INGRESAR'}</Text>
+          <Text style={styles.loginButtonText} allowFontScaling={false}>{loading ? 'Autenticando...' : 'INGRESAR'}</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomOptions}>
           <TouchableOpacity style={styles.bottomButton} onPress={handleGoToReactivar}>
-            <Text style={styles.bottomText}>REACTIVAR</Text>
+            <Text style={styles.bottomText} allowFontScaling={false}>REACTIVAR</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomButton} onPress={showDeviceInfo}>
-            <Text style={styles.bottomText}>DEVICE ID</Text>
+            <Text style={styles.bottomText} allowFontScaling={false}>DEVICE ID</Text>
           </TouchableOpacity>
         </View>
-        </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -251,7 +260,14 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 40,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
   },
   topSection: {
     alignItems: 'center',
@@ -264,10 +280,10 @@ const styles = StyleSheet.create({
   },
   loginBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 400,
+    width: '100%',
+    maxWidth: 560,
     borderRadius: 12,
-    padding: 30,
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

@@ -3,10 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ComprobanteScreen() {
   const router = useRouter();
   const { monto, comision, total, referencia, fecha } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -17,7 +19,7 @@ export default function ComprobanteScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerWrapper}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
             <View style={styles.headerContent}>              
               <View style={styles.headerTitleContainer}>
                 <Text style={styles.headerTitle}>COMPROBANTE TRANSACCION</Text>
@@ -119,17 +121,13 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 0,
     alignItems: 'center',
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   headerContent: {
     flexDirection: 'row',
@@ -137,6 +135,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     paddingHorizontal: 20,
+    justifyContent: 'flex-start',
   },
   headerTitle: {
     color: '#fff',

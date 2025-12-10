@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -10,12 +10,14 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 
 const OtpVerificacionScreen = () => {
   const router = useRouter();
   const { monto, comision, total, labelTransaccion, otpCliente, otpAgente, accionTransaccion } = useLocalSearchParams();
   const { userData } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   // Obtener configuración de validación de OTP de la operación
   const validarOtpCliente = otpCliente === 'true' ? true : false;
   const validarOtpAgente = otpAgente === 'true' ? true : false;
@@ -234,6 +236,23 @@ const OtpVerificacionScreen = () => {
         console.log('Response:', response);*/
       }
 
+      if (accionTransaccion === 'obligaciones') {
+        alert('Obligaciones');
+        /*
+        const response = await ApiService.procesarRetiro({
+          secuencialCuenta: userData?.secuencialCuenta,
+          numeroCuentaCliente: userData?.numeroCuentaCliente,
+          tipoCuentaCliente: userData?.tipoCuentaCliente,
+          valor: monto,
+          nombreCliente: userData?.nombreCliente,
+          identificacionCliente: userData?.identificacionCliente,
+          tipoIdentificacionCliente: userData?.tipoIdentificacionCliente,                   
+          descripcion: accionTransaccion,
+          usuario: userData?.usuario,
+        });
+        console.log('Response:', response);*/
+      }
+
       router.push({
         pathname: '/comprobante',
         params: {
@@ -262,16 +281,16 @@ const OtpVerificacionScreen = () => {
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerWrapper}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
             <View style={styles.headerContent}>
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => router.back()}
               >
-                <Text style={styles.backArrow}>{'←'}</Text>
+                <Text style={styles.backArrow}>‹</Text>                
               </TouchableOpacity>
               <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerTitle}>VERIFICACIÓN DE TRANSACCIÓN</Text>
+                <Text style={styles.headerTitle}>VERIFICACIÓN TRANSACCIÓN</Text>
               </View>
             </View>
           </View>
@@ -279,7 +298,7 @@ const OtpVerificacionScreen = () => {
 
         <View style={styles.card}>
           <Text style={styles.instruction}>
-            Hemos enviado un código de verificación a su número de teléfono y/o correo electrónico
+            Si se solicita código de verificación para completar la operación, por favor consulte su teléfono y/o correo electrónico e ingrese el código recibido. 
           </Text>
 
           <View style={styles.transactionInfo}>
@@ -423,14 +442,14 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 20,
-    marginBottom: 20,
     alignItems: 'center',
   },
   backButton: {
     zIndex: 1,
     padding: 10,
-    marginLeft: -10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     color: '#fff',
@@ -439,23 +458,22 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    justifyContent: 'flex-start',
   },
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 20,
+    fontSize: 18,
+    textAlign: 'center',
     flex: 1,
   },
   card: {
