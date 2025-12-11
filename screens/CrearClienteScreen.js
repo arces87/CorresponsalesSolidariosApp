@@ -2,11 +2,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function CrearClienteScreen() {
     const router = useRouter();
@@ -222,22 +223,22 @@ export default function CrearClienteScreen() {
             >
                 <ScrollView style={styles.scrollContainer}>
                     <View style={styles.headerWrapper}>
-                        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-                            <View style={styles.headerContent}>
+                        <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+                            <View style={globalStyles.headerContent}>
                                 <TouchableOpacity
-                                    style={styles.backButton}
+                                    style={globalStyles.backButton}
                                     onPress={() => router.back()}
                                 >
-                                    <Text style={styles.backArrow}>‹</Text>                                     
+                                    <Text style={globalStyles.backArrow}>‹</Text>
                                 </TouchableOpacity>
-                                <View style={styles.headerTitleContainer}>
-                                    <Text style={styles.headerTitle}>CREAR CLIENTE</Text>
+                                <View style={globalStyles.headerTitleContainer}>
+                                    <Text style={globalStyles.headerTitle}>CREAR CLIENTE</Text>
                                 </View>
                             </View>
                         </View>
                     </View>
 
-                    <View style={styles.card}>
+                    <View style={globalStyles.card}>
                         <View style={styles.formGroup}>
                             <Text style={styles.label}>Tipo de Identificación *</Text>
                             <View style={styles.pickerContainer}>
@@ -526,59 +527,7 @@ const styles = StyleSheet.create({
     headerWrapper: {
         width: '92%',
         alignSelf: 'center',
-        paddingTop: 40,
         paddingBottom: 0,
-    },
-    header: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    headerTitleContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: -20, // Compensar el ancho del botón de retroceso
-    },
-    headerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 500,
-        paddingHorizontal: 20,
-        justifyContent: 'flex-start',
-    },
-    headerTitle: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 20,
-        textAlign: 'center',
-    },
-    backButton: {
-        zIndex: 1,
-        padding: 10,
-        minWidth: 50, // Asegurar ancho consistente
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    backArrow: {
-        color: '#fff',
-        fontSize: 35,
-        fontWeight: 'bold',
-    },
-    card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        width: '90%',
-        maxWidth: 500,
-        borderRadius: 12,
-        padding: 20,
-        marginVertical: 20,
-        marginBottom: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 8,
-        alignSelf: 'center',
     },
     formGroup: {
         marginBottom: 15,

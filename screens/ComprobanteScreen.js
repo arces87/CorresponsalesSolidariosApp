@@ -1,9 +1,9 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function ComprobanteScreen() {
   const router = useRouter();
@@ -19,10 +19,10 @@ export default function ComprobanteScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerWrapper}>
-          <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-            <View style={styles.headerContent}>              
-              <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerTitle}>COMPROBANTE TRANSACCION</Text>
+          <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+            <View style={globalStyles.headerContent}>
+              <View style={globalStyles.headerTitleContainer}>
+                <Text style={globalStyles.headerTitle}>COMPROBANTE TRANSACCION</Text>
               </View>
             </View>
           </View>
@@ -42,7 +42,7 @@ export default function ComprobanteScreen() {
               <Text style={styles.transactionStatus}>Transacción Exitosa</Text>
             </View>
           </View>
-        <View style={styles.card}>             
+        <View style={globalStyles.card}>
           <View style={styles.tableContainer}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableHeaderText}>Detalle</Text>
@@ -118,43 +118,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingTop: 40,
     paddingBottom: 0
-  },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -20, // Compensar el ancho del botón de retroceso
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
-    justifyContent: 'flex-start',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 20,
-    flex: 1,
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 500,
-    borderRadius: 12,
-    padding: 25,
-    marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
   },
   logoHorizontal: {
     width: width * 0.8,

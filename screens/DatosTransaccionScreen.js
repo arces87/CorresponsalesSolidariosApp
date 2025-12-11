@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, S
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function DatosTransaccionScreen() {
   const router = useRouter();
@@ -20,9 +21,9 @@ export default function DatosTransaccionScreen() {
   const [loading, setLoading] = useState(false);
   const [cargandoCuentas, setCargandoCuentas] = useState(false);
   const [valorTransaccion, setValorTransaccion] = useState('');
-  const [menuLabel, setMenuLabel] = useState(''); 
+  const [menuLabel, setMenuLabel] = useState('');
   const [menuAccion, setMenuAccion] = useState('');
-  
+
   const handleContinuar = async () => {
     if (!valorTransaccion) {
       alert('Por favor ingrese un valor para la transacción');
@@ -37,16 +38,16 @@ export default function DatosTransaccionScreen() {
         secuencialcuenta: cuentatransaccion.secuencialCuenta,
         valor: valorTransaccion,
         nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
-        identificacioncliente: cliente.identificacion        
-      };    
-      
+        identificacioncliente: cliente.identificacion
+      };
+
       setUserData(prevData => ({
         ...prevData,
         ...transaccionData
-      }));      
-      
-      if(menuAccion === 'retiro') {    
-        console.log('Retiro');           
+      }));
+
+      if (menuAccion === 'retiro') {
+        console.log('Retiro');
         /* const disponible = cuentatransaccion.disponibleParaTransaccion?.toFixed(2);
                 
         if (Number(valorTransaccion) > Number(disponible)) {
@@ -69,25 +70,25 @@ export default function DatosTransaccionScreen() {
           alert('Error al obtener el saldo en caja. Por favor intente nuevamente.');
           return;
         } */
-          const comision = Number(userData?.comisiones?.retiro?.administracionCanal) + 
-          Number(userData?.comisiones?.retiro?.agente) + 
+        const comision = Number(userData?.comisiones?.retiro?.administracionCanal) +
+          Number(userData?.comisiones?.retiro?.agente) +
           Number(userData?.comisiones?.retiro?.cooperativa);
-          router.push({
-            pathname: '/otpverificacion',
-            params: { 
-              monto: valorTransaccion,  
-              comision: comision,  
-              total: Number(valorTransaccion) + Number(comision),                
-              labelTransaccion: menuLabel,
-              accionTransaccion: menuAccion,
-              otpCliente: userData?.jsonNegocio?.retiro?.validarOtpCliente ?? false,
-              otpAgente: userData?.jsonNegocio?.retiro?.validarOtpAgente ?? false          
-            }
-          });
+        router.push({
+          pathname: '/otpverificacion',
+          params: {
+            monto: valorTransaccion,
+            comision: comision,
+            total: Number(valorTransaccion) + Number(comision),
+            labelTransaccion: menuLabel,
+            accionTransaccion: menuAccion,
+            otpCliente: userData?.jsonNegocio?.retiro?.validarOtpCliente ?? false,
+            otpAgente: userData?.jsonNegocio?.retiro?.validarOtpAgente ?? false
+          }
+        });
       }
-      
+
       if (menuAccion === 'deposito') {
-        console.log('Depósito');        
+        console.log('Depósito');
         /* setLoading(true);
         const saldo = await ApiService.solicitudSaldoCuenta({
           usuario: userData?.usuario          
@@ -97,23 +98,23 @@ export default function DatosTransaccionScreen() {
           alert('El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
           return;
         } */
-          const comision = Number(userData?.comisiones?.deposito?.administracionCanal) + 
-          Number(userData?.comisiones?.deposito?.agente) + 
+        const comision = Number(userData?.comisiones?.deposito?.administracionCanal) +
+          Number(userData?.comisiones?.deposito?.agente) +
           Number(userData?.comisiones?.deposito?.cooperativa);
-          router.push({
-            pathname: '/otpverificacion',
-            params: {
-              monto: valorTransaccion,   
-              comision: comision,     
-              total: Number(valorTransaccion) + Number(comision),  
-              labelTransaccion: menuLabel,
-              accionTransaccion: menuAccion,
-              otpCliente: userData?.jsonNegocio?.deposito?.validarOtpCliente ?? false,
-              otpAgente: userData?.jsonNegocio?.deposito?.validarOtpAgente ?? false          
-            }
-          });
-      }      
-      
+        router.push({
+          pathname: '/otpverificacion',
+          params: {
+            monto: valorTransaccion,
+            comision: comision,
+            total: Number(valorTransaccion) + Number(comision),
+            labelTransaccion: menuLabel,
+            accionTransaccion: menuAccion,
+            otpCliente: userData?.jsonNegocio?.deposito?.validarOtpCliente ?? false,
+            otpAgente: userData?.jsonNegocio?.deposito?.validarOtpAgente ?? false
+          }
+        });
+      }
+
     } catch (error) {
       console.error('Error en handleContinuar:', error);
       alert(`Error: ${error.message || 'Ocurrió un error al procesar la transacción'}`);
@@ -123,7 +124,7 @@ export default function DatosTransaccionScreen() {
   };
 
   const [error, setError] = useState('');
-  
+
   // Establecer el primer tipo de identificación por defecto al cargar los catálogos
   // Cargar la acción del menú seleccionada
   useEffect(() => {
@@ -174,15 +175,15 @@ export default function DatosTransaccionScreen() {
       const resultado = await ApiService.buscarCliente({
         identificacion: identificacion.trim(),
         secuencialTipoIdentificacion: parseInt(tipoId, 10),
-        usuario: userData?.usuario        
+        usuario: userData?.usuario
       });
-      
+
       setCliente(resultado);
       console.log('Cliente encontrado:', resultado);
-      
+
       // Buscar cuentas del cliente
       await buscarCuentasCliente(
-        resultado.identificacion, 
+        resultado.identificacion,
         resultado.secuencialTipoIdentificacion,
         resultado.numeroCliente,
         resultado.secuencialEmpresa);
@@ -196,29 +197,29 @@ export default function DatosTransaccionScreen() {
   };
 
   const buscarCuentasCliente = async (
-    identificacion, 
+    identificacion,
     secuencialTipoIdentificacion,
     numeroCliente,
     secuencialEmpresa
   ) => {
     if (!identificacion || !secuencialTipoIdentificacion) return;
-    
+
     setCargandoCuentas(true);
     setCuentas([]);
     setCuentaSeleccionada('');
-    
+
     try {
       const resultado = await ApiService.buscarCuentas({
         identificacion,
         secuencialTipoIdentificacion,
         numeroCliente,
         secuencialEmpresa,
-        usuario: userData?.usuario         
+        usuario: userData?.usuario
       });
-      
+
       console.log('Cuentas encontradas:', resultado);
       setCuentas(resultado.cuentaDetallesConsolidado || []);
-      
+
       // Seleccionar la primera cuenta por defecto si hay cuentas
       if (resultado.cuentaDetallesConsolidado?.length > 0) {
         setCuentaSeleccionada(String(resultado.cuentaDetallesConsolidado[0].secuencialCuenta));
@@ -236,7 +237,7 @@ export default function DatosTransaccionScreen() {
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.removeItem('authToken');
-    } catch (e) {}
+    } catch (e) { }
     router.replace('/');
   };
 
@@ -255,157 +256,157 @@ export default function DatosTransaccionScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
-            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-              <View style={styles.headerContent}>
-                <TouchableOpacity 
-                  style={styles.backButton} 
-                  onPress={() => router.back()}
-                >
-                  <Text style={styles.backArrow}>‹</Text>              
-                </TouchableOpacity>
-                <View style={styles.headerTitleContainer}>
-                  <Text style={styles.headerTitle}>{'DATOS ' + menuLabel}</Text>
-                </View>
-              </View>
+        <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+          <View style={globalStyles.headerContent}>
+            <TouchableOpacity
+              style={globalStyles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={globalStyles.backArrow}>‹</Text>
+            </TouchableOpacity>
+            <View style={globalStyles.headerTitleContainer}>
+              <Text style={globalStyles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
-          <View style={styles.card}>
-        <Text style={styles.instruction}>
-          {'Seleccione los datos de la transacción'}
-        </Text>
-        <Text style={styles.label}>Tipo de Identificación</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={tipoId}
-            onValueChange={setTipoId}
-            style={styles.picker}
-            dropdownIconColor="#000"
-          >
-            {catalogos?.tiposIdentificaciones?.map((tipo) => (
-              <Picker.Item 
-                key={tipo.secuencial} 
-                label={tipo.nombre} 
-                value={String(tipo.secuencial)} 
-              />
-            ))}
-          </Picker>
+          </View>
         </View>
-        <Text style={styles.label}>Identificación:</Text>
-        <TextInput
-          style={styles.input}
-          value={identificacion}
-          onChangeText={setIdentificacion}
-          placeholder="Ingrese el número de identificación"
-          keyboardType="numeric"
-          editable={!loading}
-        />        
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleBuscarCliente}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>BUSCAR CLIENTE</Text>
-          )}
-        </TouchableOpacity>
-
-        {error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : null}
-
-        {cliente && (
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultTitle}>Datos del Cliente</Text>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Nombre: </Text>
-              <Text style={styles.resultValue}>{cliente.nombres + cliente.apellidos || 'No disponible'}</Text>
-            </View>               
-            {cliente.telefono && (
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Teléfono: </Text>
-                <Text style={styles.resultValue}>{cliente.telefono}</Text>
+        <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+            <View style={globalStyles.card}>
+              <Text style={styles.instruction}>
+                {'Seleccione los datos de la transacción'}
+              </Text>
+              <Text style={styles.label}>Tipo de Identificación</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={tipoId}
+                  onValueChange={setTipoId}
+                  style={styles.picker}
+                  dropdownIconColor="#000"
+                >
+                  {catalogos?.tiposIdentificaciones?.map((tipo) => (
+                    <Picker.Item
+                      key={tipo.secuencial}
+                      label={tipo.nombre}
+                      value={String(tipo.secuencial)}
+                    />
+                  ))}
+                </Picker>
               </View>
-            )}
-            {cliente.correoElectronico && (
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Correo: </Text>
-                <Text style={styles.resultValue}>{cliente.correoElectronico}</Text>
-              </View>
-            )}
-            
-            {/* Selector de Cuentas */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>SELECCIONAR CUENTA</Text>
-              {cargandoCuentas ? (
-                <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
-              ) : cuentas.length > 0 ? (
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={cuentaSeleccionada}
-                    onValueChange={(itemValue) => setCuentaSeleccionada(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#2957a4"
-                  >
-                    {cuentas.map((cuenta) => (
-                      <Picker.Item 
-                        key={cuenta.secuencialCuenta} 
-                        label={`${cuenta.tipoCuentaNombre} - ${cuenta.monedaNombre} (${cuenta.codigo})`} 
-                        value={String(cuenta.secuencialCuenta)} 
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              ) : (
-                <Text style={styles.noAccountsText}>No se encontraron cuentas</Text>
-              )}
-              
-              {cuentaSeleccionada && cuentas.length > 0 && (
-                <View style={styles.accountDetails}>
-                  <Text style={styles.accountDetailText}>
-                    Saldo disponible: ${cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
-                  </Text>
-                  
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Valor de la transacción</Text>
-                    <View style={styles.currencyInputContainer}>
-                      <Text style={styles.currencySymbol}>$</Text>
-                      <TextInput
-                        style={styles.currencyInput}
-                        keyboardType="numeric"
-                        placeholder="0.00"
-                        placeholderTextColor="#999"
-                        value={valorTransaccion}
-                        onChangeText={(text) => {
-                          // Allow only numbers and one decimal point
-                          const regex = /^\d*\.?\d{0,2}$/;
-                          if (text === '' || regex.test(text)) {
-                            setValorTransaccion(text);
-                          }
-                        }}
-                      />
+              <Text style={styles.label}>Identificación:</Text>
+              <TextInput
+                style={styles.input}
+                value={identificacion}
+                onChangeText={setIdentificacion}
+                placeholder="Ingrese el número de identificación"
+                keyboardType="numeric"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleBuscarCliente}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>BUSCAR CLIENTE</Text>
+                )}
+              </TouchableOpacity>
+
+              {error ? (
+                <Text style={styles.errorText}>{error}</Text>
+              ) : null}
+
+              {cliente && (
+                <View style={styles.resultContainer}>
+                  <Text style={styles.resultTitle}>Datos del Cliente</Text>
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>Nombre: </Text>
+                    <Text style={styles.resultValue}>{cliente.nombres + cliente.apellidos || 'No disponible'}</Text>
+                  </View>
+                  {cliente.telefono && (
+                    <View style={styles.resultRow}>
+                      <Text style={styles.resultLabel}>Teléfono: </Text>
+                      <Text style={styles.resultValue}>{cliente.telefono}</Text>
                     </View>
-                    
-                    <TouchableOpacity 
-                      style={[styles.continueButton, !valorTransaccion && styles.continueButtonDisabled]}
-                      disabled={!valorTransaccion}
-                      onPress={() => handleContinuar()}
-                    >
-                      <Text style={styles.continueButtonText}>CONTINUAR</Text>
-                    </TouchableOpacity>
+                  )}
+                  {cliente.correoElectronico && (
+                    <View style={styles.resultRow}>
+                      <Text style={styles.resultLabel}>Correo: </Text>
+                      <Text style={styles.resultValue}>{cliente.correoElectronico}</Text>
+                    </View>
+                  )}
+
+                  {/* Selector de Cuentas */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>SELECCIONAR CUENTA</Text>
+                    {cargandoCuentas ? (
+                      <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
+                    ) : cuentas.length > 0 ? (
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={cuentaSeleccionada}
+                          onValueChange={(itemValue) => setCuentaSeleccionada(itemValue)}
+                          style={styles.picker}
+                          dropdownIconColor="#2957a4"
+                        >
+                          {cuentas.map((cuenta) => (
+                            <Picker.Item
+                              key={cuenta.secuencialCuenta}
+                              label={`${cuenta.tipoCuentaNombre} - ${cuenta.monedaNombre} (${cuenta.codigo})`}
+                              value={String(cuenta.secuencialCuenta)}
+                            />
+                          ))}
+                        </Picker>
+                      </View>
+                    ) : (
+                      <Text style={styles.noAccountsText}>No se encontraron cuentas</Text>
+                    )}
+
+                    {cuentaSeleccionada && cuentas.length > 0 && (
+                      <View style={styles.accountDetails}>
+                        <Text style={styles.accountDetailText}>
+                          Saldo disponible: ${cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
+                        </Text>
+
+                        <View style={styles.inputContainer}>
+                          <Text style={styles.label}>Valor de la transacción</Text>
+                          <View style={styles.currencyInputContainer}>
+                            <Text style={styles.currencySymbol}>$</Text>
+                            <TextInput
+                              style={styles.currencyInput}
+                              keyboardType="numeric"
+                              placeholder="0.00"
+                              placeholderTextColor="#999"
+                              value={valorTransaccion}
+                              onChangeText={(text) => {
+                                // Allow only numbers and one decimal point
+                                const regex = /^\d*\.?\d{0,2}$/;
+                                if (text === '' || regex.test(text)) {
+                                  setValorTransaccion(text);
+                                }
+                              }}
+                            />
+                          </View>
+
+                          <TouchableOpacity
+                            style={[styles.continueButton, !valorTransaccion && styles.continueButtonDisabled]}
+                            disabled={!valorTransaccion}
+                            onPress={() => handleContinuar()}
+                          >
+                            <Text style={styles.continueButtonText}>CONTINUAR</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 </View>
               )}
             </View>
-          </View>
-        )}
-      </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-    </LinearGradient>
-  </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
@@ -422,64 +423,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   scrollViewContent: {
+    width: '100%',
     paddingBottom: 20,
-  },
-  headerWrapper: {
-    width: '92%',
-    alignSelf: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingBottom: 0,
-  },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
-    justifyContent: 'flex-start',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -20, // Compensar el ancho del botón de retroceso
-  },
-  backButton: {
-    zIndex: 1,
-    padding: 10,
-    minWidth: 50, // Asegurar ancho consistente
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#fff',
-    fontSize: 35,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 20,
-    flex: 1,
-  },
-  card: {    
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 500,
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 20,
-    marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-    alignSelf: 'center',    
   },
   instruction: {
     fontSize: 16,
@@ -568,7 +513,7 @@ const styles = StyleSheet.create({
   },
   resultLabel: {
     fontWeight: 'bold',
-    color: '#495057',    
+    color: '#495057',
   },
   resultValue: {
     flex: 1,

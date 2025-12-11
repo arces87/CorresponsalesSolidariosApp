@@ -2,11 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function DatosTransaccionPrestamoScreen() {
   const router = useRouter();
@@ -205,20 +206,20 @@ export default function DatosTransaccionPrestamoScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-          <View style={styles.headerContent}>
+        <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+          <View style={globalStyles.headerContent}>
             <TouchableOpacity
-              style={styles.backButton}
+              style={globalStyles.backButton}
               onPress={() => router.back()}
             >
-              <Text style={styles.backArrow}>‹</Text>
+              <Text style={globalStyles.backArrow}>‹</Text>
             </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>{'DATOS ' + menuLabel}</Text>
+            <View style={globalStyles.headerTitleContainer}>
+              <Text style={globalStyles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
           </View>
         </View>
-        <View style={styles.card}>
+        <View style={globalStyles.card}>
           <Text style={styles.instruction}>
             {'Seleccione los datos de la transacción'}
           </Text>
@@ -376,56 +377,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 60,
     paddingBottom: 0,
-  },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
-    justifyContent: 'flex-start',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -20, // Compensar el ancho del botón de retroceso
-  },
-  backButton: {
-    zIndex: 1,
-    padding: 10,
-    minWidth: 50, // Asegurar ancho consistente
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#fff',
-    fontSize: 35,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-    textAlign: 'center',
-    flex: 1,
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 500,
-    borderRadius: 12,
-    padding: 25,
-    marginBottom: 20,
-    marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
   },
   instruction: {
     fontSize: 16,

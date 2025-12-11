@@ -1,11 +1,12 @@
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function CrearCuentaScreen() {
   const router = useRouter();
@@ -158,16 +159,16 @@ export default function CrearCuentaScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerWrapper}>
-          <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-            <View style={styles.headerContent}>
+          <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+            <View style={globalStyles.headerContent}>
               <TouchableOpacity
                 onPress={() => router.back()}
-                style={styles.backButton}
+                style={globalStyles.backButton}
               >
-                <Text style={styles.backButtonText}>‹</Text>
+                <Text style={globalStyles.backArrow}>‹</Text>
               </TouchableOpacity>
-              <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerTitle}>CREAR CUENTA</Text>
+              <View style={globalStyles.headerTitleContainer}>
+                <Text style={globalStyles.headerTitle}>CREAR CUENTA</Text>
               </View>
             </View>
           </View>
@@ -283,44 +284,7 @@ const styles = StyleSheet.create({
   headerWrapper: {
     width: '92%',
     alignSelf: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
     paddingBottom: 0,
-  },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 10,
-    justifyContent: 'flex-start',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -20, // Compensar el ancho del botón de retroceso
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    flex: 1,
-  },
-  backButton: {
-    padding: 10,
-    zIndex: 1,
-    minWidth: 50, // Asegurar ancho consistente
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 30,
-    color: '#fff',
-    lineHeight: 30,
   },
   content: {
     flex: 1,

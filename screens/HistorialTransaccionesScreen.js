@@ -2,12 +2,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
+import { globalStyles } from '../styles/globalStyles';
 
 export default function HistorialTransaccionesScreen() {
   const router = useRouter();
@@ -134,21 +134,21 @@ export default function HistorialTransaccionesScreen() {
             }
           >
           <View style={styles.headerWrapper}>
-            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-              <View style={styles.headerContent}>
+            <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+              <View style={globalStyles.headerContent}>
                 <TouchableOpacity
-                  style={styles.backButton}
+                  style={globalStyles.backButton}
                   onPress={() => router.back()}
                 >
-                  <Text style={styles.backArrow}>‹</Text>                   
+                  <Text style={globalStyles.backArrow}>‹</Text>
                 </TouchableOpacity>
-                <View style={styles.headerTitleContainer}>
-                  <Text style={styles.headerTitle}>HISTORIAL TRANSACCIONES</Text>
+                <View style={globalStyles.headerTitleContainer}>
+                  <Text style={globalStyles.headerTitle}>HISTORIAL TRANSACCIONES</Text>
                 </View>
               </View>
             </View>
           </View>
-          <View style={styles.card}>
+          <View style={globalStyles.card}>
             <Text style={styles.instruction}>
               {'Seleccione el periodo a consultar'}
             </Text>
@@ -320,44 +320,7 @@ const styles = StyleSheet.create({
   headerWrapper: {
     width: '92%',
     alignSelf: 'center',
-    paddingTop: 40,
     paddingBottom: 0,
-  },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 500,
-    paddingHorizontal: 20,
-    justifyContent: 'flex-start',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -20, // Compensar el ancho del botón de retroceso
-  },
-  headerTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 20,
-    textAlign: 'center',
-  },
-  backButton: {
-    zIndex: 2,
-    padding: 10,
-    minWidth: 50, // Asegurar ancho consistente
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#fff',
-    fontSize: 35,
-    fontWeight: 'bold',
   },
   instruction: {
     fontSize: 16,
@@ -365,21 +328,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     fontWeight: '500',
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '100%',
-    maxWidth: 560,
-    borderRadius: 12,
-    padding: 24,
-    marginVertical: 20,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-    alignSelf: 'center',
   },
 
 

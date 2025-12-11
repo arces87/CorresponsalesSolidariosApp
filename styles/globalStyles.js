@@ -112,6 +112,61 @@ export const globalStyles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 15,
   },
+
+  // Header styles
+  header: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 500,
+    paddingHorizontal: 20,
+    justifyContent: 'flex-start',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -20, // Compensar el ancho del botón de retroceso
+  },
+  backButton: {
+    zIndex: 1,
+    padding: 10,
+    minWidth: 50, // Asegurar ancho consistente
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: {
+    color: colors.white,
+    fontSize: 35,
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    color: colors.white,
+    fontWeight: 'bold',
+    fontSize: 20,
+    flex: 1,
+  },
+
+  // Card styles
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: '90%',
+    maxWidth: 500,
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 20,
+    marginVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    alignSelf: 'center',
+  },
 });
 
 export default globalStyles;
