@@ -16,14 +16,16 @@ import ApiService from '../services/ApiService';
 
 const CambioContrasenaScreen = () => {
   const router = useRouter();
+  const [contrasenaAnterior, setContrasenaAnterior] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [repetirContrasena, setRepetirContrasena] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showContrasenaAnterior, setShowContrasenaAnterior] = useState(false);
   const [showNuevaContrasena, setShowNuevaContrasena] = useState(false);
   const [showRepetirContrasena, setShowRepetirContrasena] = useState(false);
 
   const handleCambiarContrasena = async () => {
-    if (!nuevaContrasena || !repetirContrasena) {
+    if (!contrasenaAnterior || !nuevaContrasena || !repetirContrasena) {
       alert('Por favor complete todos los campos');
       return;
     }
@@ -47,7 +49,8 @@ const CambioContrasenaScreen = () => {
 
       const response = await ApiService.cambiarContrasena({
               token: token,
-              contrasenia: nuevaContrasena              
+              contrasenia: nuevaContrasena,
+              contraseniaAnterior: contrasenaAnterior
             });
       if(response){
         alert('Contraseña cambiada correctamente');
@@ -84,7 +87,32 @@ const CambioContrasenaScreen = () => {
         </View>
         
         <View style={styles.formContainer}>
-        <Text style={styles.label}>Ingrese su nueva contraseña</Text>
+        <Text style={styles.label}>Ingrese su contraseña anterior</Text>
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            value={contrasenaAnterior}
+            onChangeText={setContrasenaAnterior}
+            placeholder="Contraseña anterior"
+            secureTextEntry={!showContrasenaAnterior}
+            autoCapitalize="none"
+            editable={!loading}
+          />
+          <TouchableOpacity 
+            style={styles.eyeIcon}
+            onPress={() => setShowContrasenaAnterior(!showContrasenaAnterior)}
+            disabled={loading}
+          >
+            <Image 
+              source={showContrasenaAnterior ? 
+                require('../assets/eye-off.png') : 
+                require('../assets/eye.png')} 
+              style={styles.eyeIconImage}
+            />
+          </TouchableOpacity>
+        </View>
+        
+        <Text style={[styles.label, { marginTop: 15 }]}>Ingrese su nueva contraseña</Text>
         <View style={styles.passwordContainer}>
           <TextInput
             style={styles.passwordInput}

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setUserData, setCatalogos } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [nombreEmpresa, setNombreEmpresa] = useState('');
 
   // Función para guardar el token en AsyncStorage
   const saveAuthToken = async (token) => {
@@ -101,16 +102,12 @@ export default function LoginScreen() {
         loginTimestamp: Date.now(),
         tokenExp: null,
         usuario: username,
-        contrasenia: password,       
-        /* retiro: response.jsonNegocio.retiro || null,
-        deposito: response.jsonNegocio.deposito || null,
-        prestamos: response.jsonNegocio.abonoPrestamos || null,
-        pago: response.jsonNegocio.cobroServicios || null,
-        comisiones: response.comisiones || null,   */
+        contrasenia: password,
+        tiempootp: response.tiempoOtp  
       };
 
         setUserData(userData);      
-
+        console.log('response', response);  
         // 3. Obtener catálogos
         try {
           const catalogos = await ApiService.obtenerDistribuidos({            
@@ -128,6 +125,7 @@ export default function LoginScreen() {
           catalogos: null
         }));
         }
+        console.log('userData', userData);  
         router.push('/menu');
     } catch (error) {
       alert(error.message || error);
@@ -172,6 +170,25 @@ export default function LoginScreen() {
     }
     return Math.abs(hash).toString(16).padStart(16, '0');
   }
+
+  // Obtener nombre de la empresa al iniciar
+  useEffect(() => {
+    const obtenerNombreEmpresa = async () => {
+      try {
+        const response = await ApiService.devuelveNombreEmpresa({
+          secuencial: 1
+        });
+        if (response?.nombreEmpresa) {
+          setNombreEmpresa(response.nombreEmpresa);
+        }
+      } catch (error) {
+        console.error('Error al obtener nombre de empresa:', error);
+        // No mostrar error al usuario, simplemente no se mostrará el nombre
+      }
+    };
+
+    obtenerNombreEmpresa();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -244,6 +261,11 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        {nombreEmpresa ? (
+          <View style={styles.empresaContainer}>
+            <Text style={styles.empresaText} allowFontScaling={false}>{nombreEmpresa}</Text>
+          </View>
+        ) : null}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -351,5 +373,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
     textDecorationLine: 'underline',
+  },
+  empresaContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  empresaText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

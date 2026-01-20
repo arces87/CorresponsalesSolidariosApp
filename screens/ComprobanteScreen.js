@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
     marginBottom: 20,
+    justifyContent: 'center',    
   },
   statusIcon: {
     backgroundColor: '#4CAF50',

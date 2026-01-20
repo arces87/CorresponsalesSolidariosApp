@@ -298,12 +298,14 @@ export default function HojaColectaScreen() {
         <View style={styles.mainContainer}>
           <ScrollView 
             style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
               />
             }
+            showsVerticalScrollIndicator={true}
           >
             <View style={styles.contentContainer}>
               {/* Mostrar error si existe */}
@@ -430,22 +432,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   mainContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: '90%',
-    maxWidth: 500,
-    borderRadius: 12,
-    padding: 25,    
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
     width: '100%',
-    paddingBottom: 15,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+    paddingTop: 10,
   },
   headerWrapper: {
     width: '100%',
@@ -488,9 +485,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   contentContainer: {
-    flex: 1,
-    padding: 15,
-    paddingTop: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: '90%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   loadingIndicator: {
     marginTop: 40,

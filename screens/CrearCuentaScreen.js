@@ -21,6 +21,7 @@ export default function CrearCuentaScreen() {
   const [montoApertura, setMontoApertura] = useState('');
   const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
   const [cargandoCuentas, setCargandoCuentas] = useState(false);
+  const [errorTiposCuenta, setErrorTiposCuenta] = useState('');
 
   // Buscar tipos de cuentas disponibles para el cliente
   const buscarTipoCuentas = async (secuencialCliente, secuencialEmpresa) => {
@@ -30,12 +31,25 @@ export default function CrearCuentaScreen() {
       
       const tiposCuenta = await ApiService.buscarTipoCuenta({
         secuencialCliente,
-        secuencialEmpresa,
-        codigoProductoVista: '1',        
+        secuencialEmpresa: 1,
+        codigoProductoVista: '12',        
         usuario: userData?.usuario
       });
       
       console.log('Tipos de cuenta encontrados:', tiposCuenta);
+      
+      // Verificar si hay un error en la respuesta
+      const cuentaError = tiposCuenta?.find(cuenta => cuenta.codigo === 'ERROR');
+      if (cuentaError) {
+        setErrorTiposCuenta(cuentaError.nombre || 'Error al cargar los tipos de cuenta');
+        setCuentasDisponibles([]);
+        setTipoCuenta('');
+        setMontoApertura('');
+        return tiposCuenta;
+      }
+      
+      // Si no hay error, procesar normalmente
+      setErrorTiposCuenta('');
       setCuentasDisponibles(tiposCuenta || []);
       
       // Seleccionar el primer tipo de cuenta por defecto si hay opciones disponibles
@@ -48,7 +62,10 @@ export default function CrearCuentaScreen() {
     } catch (error) {
       console.error('Error al buscar tipos de cuenta:', error);
       setError(error.message || 'Error al cargar los tipos de cuenta');
+      setErrorTiposCuenta(error.message || 'Error al cargar los tipos de cuenta');
       setCuentasDisponibles([]);
+      setTipoCuenta('');
+      setMontoApertura('');
       throw error;
     } finally {
       setCargandoCuentas(false);
@@ -231,28 +248,43 @@ export default function CrearCuentaScreen() {
 
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Tipo de Cuenta *</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={tipoCuenta}
-                      onValueChange={setTipoCuenta}
-                      style={styles.picker}
-                      dropdownIconColor="#000"
-                    >                      
-                      {cuentasDisponibles.map((cuenta) => (
-                        <Picker.Item
-                          key={cuenta.codigo}
-                          label={cuenta.nombre}
-                          value={String(cuenta.codigo)}
-                        />
-                      ))}
-                    </Picker>
-                  </View>
+                  {errorTiposCuenta ? (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>{errorTiposCuenta}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.pickerContainer}>
+                      {cargandoCuentas ? (
+                        <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
+                      ) : (
+                        <Picker
+                          selectedValue={tipoCuenta}
+                          onValueChange={setTipoCuenta}
+                          style={styles.picker}
+                          dropdownIconColor="#000"
+                          enabled={!errorTiposCuenta && cuentasDisponibles.length > 0}
+                        >                      
+                          {cuentasDisponibles.map((cuenta) => (
+                            <Picker.Item
+                              key={cuenta.codigo}
+                              label={cuenta.nombre}
+                              value={String(cuenta.codigo)}
+                            />
+                          ))}
+                        </Picker>
+                      )}
+                    </View>
+                  )}
                 </View>                
 
                 <TouchableOpacity
-                  style={[styles.button, styles.continueButton]}
+                  style={[
+                    styles.button, 
+                    styles.continueButton,
+                    (loading || !tipoCuenta || errorTiposCuenta || cuentasDisponibles.length === 0) && styles.buttonDisabled
+                  ]}
                   onPress={handleCrearCuenta}
-                  disabled={loading || !tipoCuenta}
+                  disabled={loading || !tipoCuenta || errorTiposCuenta || cuentasDisponibles.length === 0}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" />
@@ -353,6 +385,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.7,
+  },
+  errorContainer: {
+    padding: 10,
+    backgroundColor: '#ffebee',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#f44336',
+    marginBottom: 15,
+  },
+  errorText: {
+    color: '#f44336',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  loadingIndicator: {
+    padding: 10,
   },
   clientInfo: {
     marginTop: 20,

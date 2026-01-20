@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
@@ -11,7 +11,7 @@ import { globalStyles } from '../styles/globalStyles';
 
 export default function CrearClienteScreen() {
     const router = useRouter();
-    const { userData, catalogos } = useContext(AuthContext);
+    const { userData, catalogos, loadingCatalogos } = useContext(AuthContext);
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(false);
 
@@ -21,7 +21,7 @@ export default function CrearClienteScreen() {
     const [nombres, setNombres] = useState('');
     const [apellidopaterno, setApellidoPaterno] = useState('');
     const [apellidomaterno, setApellidoMaterno] = useState('');
-    const [genero, setGenero] = useState(true); // true: Masculino, false: Femenino
+    const [genero, setGenero] = useState('M'); // 'M': Masculino, 'F': Femenino
     const [email, setEmail] = useState('');
     const [telefonoMovil, setTelefonoMovil] = useState('');
     const [telefonoDomicilio, setTelefonoDomicilio] = useState('');
@@ -81,9 +81,57 @@ export default function CrearClienteScreen() {
     };
     
     const validateIdentification = (id) => {
-        // Validar que sea numérico y tenga 10 dígitos para cédula ecuatoriana
-        return /^[0-9]{10}$/.test(id);
+        // Validar que sea numérico y tenga 8 dígitos para cédula ecuatoriana
+        return /^[0-9]{8}$/.test(id);
     };
+
+    // Cargar tipos de identificación
+    useEffect(() => {
+        if (!loadingCatalogos && catalogos?.tiposIdentificaciones?.length > 0) {
+            const firstTipoId = String(catalogos.tiposIdentificaciones[0].secuencial);
+            setTipoIdentificacion(prev => {
+                // Solo establecer si no hay un valor ya seleccionado o si el valor actual no existe en las opciones
+                if (!prev || !catalogos.tiposIdentificaciones.some(t => String(t.secuencial) === prev)) {
+                    return firstTipoId;
+                }
+                return prev;
+            });
+        } else if (!loadingCatalogos && (!catalogos?.tiposIdentificaciones || catalogos.tiposIdentificaciones.length === 0)) {
+            setTipoIdentificacion('');
+        }
+    }, [catalogos, loadingCatalogos]);
+
+    // Cargar país
+    useEffect(() => {
+        if (!loadingCatalogos && catalogos?.paises?.length > 0) {
+            const firstPais = catalogos.paises[0].codigo;
+            setPais(prev => {
+                // Solo establecer si no hay un valor ya seleccionado o si el valor actual no existe en las opciones
+                if (!prev || !catalogos.paises.some(p => p.codigo === prev)) {
+                    return firstPais;
+                }
+                return prev;
+            });
+        } else if (!loadingCatalogos && (!catalogos?.paises || catalogos.paises.length === 0)) {
+            setPais('');
+        }
+    }, [catalogos, loadingCatalogos]);
+
+    // Cargar estado civil
+    useEffect(() => {
+        if (!loadingCatalogos && catalogos?.estadoCivil?.length > 0) {
+            const firstEstadoCivil = String(catalogos.estadoCivil[0].codigo);
+            setEstadoCivil(prev => {
+                // Solo establecer si no hay un valor ya seleccionado o si el valor actual no existe en las opciones
+                if (!prev || !catalogos.estadoCivil.some(e => String(e.codigo) === prev)) {
+                    return firstEstadoCivil;
+                }
+                return prev;
+            });
+        } else if (!loadingCatalogos && (!catalogos?.estadoCivil || catalogos.estadoCivil.length === 0)) {
+            setEstadoCivil('');
+        }
+    }, [catalogos, loadingCatalogos]);
 
     const validateForm = () => {
         const errors = [];
@@ -97,7 +145,7 @@ export default function CrearClienteScreen() {
         if (!identificacion) {
             errors.push('Número de identificación es requerido');
         } else if (!validateIdentification(identificacion)) {
-            errors.push('El número de identificación no es válido (debe tener 10 dígitos)');
+            errors.push('El número de identificación no es válido (debe tener 8 dígitos)');
         }
         
         // Validar nombres y apellidos
@@ -183,13 +231,13 @@ export default function CrearClienteScreen() {
                 nombres,
                 apellidoPaterno: apellidopaterno || '',
                 apellidoMaterno: apellidomaterno|| '',
-                esMasculino: genero,
+                esMasculino: genero === 'M',
                 telefonoCelular: telefonoMovil,
                 telefonoDomicilio: telefonoDomicilio || null,
-                referenciaDomicilio: referenciaDomicilio || null,
+                referenciaDomiciliaria: referenciaDomicilio.trim() || null,
                 codigoPais: pais || 'EC', // Por defecto Ecuador si no se selecciona
-                secuencialEstadoCivil: estadoCivil,
-                huellaDactilar: huellaDactilar || null,
+                codigoEstadoCivil: estadoCivil,
+                codigoDactilar: huellaDactilar || null,
                 mail: email,
                 direccionDomiciliaria: direccion || '',
                 fechaNacimiento: fechaNacimiento || null,
@@ -242,22 +290,32 @@ export default function CrearClienteScreen() {
                         <View style={styles.formGroup}>
                             <Text style={styles.label}>Tipo de Identificación *</Text>
                             <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={tipoIdentificacion}
-                                    onValueChange={(itemValue) => {
-                                        setTipoIdentificacion(itemValue);
-                                    }}
-                                    style={styles.picker}
-                                    dropdownIconColor="#2B4F8C"
-                                >
-                                    {catalogos?.tiposIdentificaciones?.map((tipo) => (
-                                        <Picker.Item 
-                                            key={tipo.id} 
-                                            label={tipo.nombre} 
-                                            value={String(tipo.id)} 
-                                        />
-                                    ))}
-                                </Picker>
+                                {loadingCatalogos || !catalogos?.tiposIdentificaciones?.length ? (
+                                    <View style={styles.loadingContainer}>
+                                        <ActivityIndicator size="small" color="#2B4F8C" />
+                                        <Text style={styles.loadingText}>
+                                            {loadingCatalogos ? 'Cargando opciones...' : 'No hay opciones disponibles'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Picker
+                                        selectedValue={tipoIdentificacion}
+                                        onValueChange={(itemValue) => {
+                                            setTipoIdentificacion(itemValue);
+                                        }}
+                                        style={styles.picker}
+                                        dropdownIconColor="#2B4F8C"
+                                        enabled={!loadingCatalogos && catalogos?.tiposIdentificaciones?.length > 0}
+                                    >
+                                        {catalogos?.tiposIdentificaciones?.map((tipo) => (
+                                            <Picker.Item 
+                                                key={tipo.secuencial} 
+                                                label={tipo.nombre} 
+                                                value={String(tipo.secuencial)} 
+                                            />
+                                        ))}
+                                    </Picker>
+                                )}
                             </View>
                         </View>
 
@@ -417,40 +475,60 @@ export default function CrearClienteScreen() {
                         <View style={styles.formGroup}>
                             <Text style={styles.label}>País *</Text>
                             <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={pais}
-                                    onValueChange={(itemValue) => setPais(itemValue)}
-                                    style={styles.picker}
-                                    dropdownIconColor="#2B4F8C"
-                                >                                    
-                                    {catalogos?.paises?.map((paisItem) => (
-                                        <Picker.Item 
-                                            key={paisItem.codigo} 
-                                            label={paisItem.nombre} 
-                                            value={paisItem.codigo} 
-                                        />
-                                    ))}
-                                </Picker>
+                                {loadingCatalogos || !catalogos?.paises?.length ? (
+                                    <View style={styles.loadingContainer}>
+                                        <ActivityIndicator size="small" color="#2B4F8C" />
+                                        <Text style={styles.loadingText}>
+                                            {loadingCatalogos ? 'Cargando opciones...' : 'No hay opciones disponibles'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Picker
+                                        selectedValue={pais}
+                                        onValueChange={(itemValue) => setPais(itemValue)}
+                                        style={styles.picker}
+                                        dropdownIconColor="#2B4F8C"
+                                        enabled={!loadingCatalogos && catalogos?.paises?.length > 0}
+                                    >                                    
+                                        {catalogos?.paises?.map((paisItem) => (
+                                            <Picker.Item 
+                                                key={paisItem.codigo} 
+                                                label={paisItem.nombre} 
+                                                value={paisItem.codigo} 
+                                            />
+                                        ))}
+                                    </Picker>
+                                )}
                             </View>
                         </View>
 
                         <View style={styles.formGroup}>
                             <Text style={styles.label}>Estado Civil *</Text>
                             <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={estadoCivil}
-                                    onValueChange={(itemValue) => setEstadoCivil(itemValue)}
-                                    style={styles.picker}
-                                    dropdownIconColor="#2B4F8C"
-                                >                                    
-                                    {catalogos?.estadoCivil?.map((estado) => (
-                                        <Picker.Item 
-                                            key={estado.codigo} 
-                                            label={estado.nombre} 
-                                            value={String(estado.codigo)} 
-                                        />
-                                    ))}
-                                </Picker>
+                                {loadingCatalogos || !catalogos?.estadoCivil?.length ? (
+                                    <View style={styles.loadingContainer}>
+                                        <ActivityIndicator size="small" color="#2B4F8C" />
+                                        <Text style={styles.loadingText}>
+                                            {loadingCatalogos ? 'Cargando opciones...' : 'No hay opciones disponibles'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Picker
+                                        selectedValue={estadoCivil}
+                                        onValueChange={(itemValue) => setEstadoCivil(itemValue)}
+                                        style={styles.picker}
+                                        dropdownIconColor="#2B4F8C"
+                                        enabled={!loadingCatalogos && catalogos?.estadoCivil?.length > 0}
+                                    >                                    
+                                        {catalogos?.estadoCivil?.map((estado) => (
+                                            <Picker.Item 
+                                                key={estado.codigo} 
+                                                label={estado.nombre} 
+                                                value={String(estado.codigo)} 
+                                            />
+                                        ))}
+                                    </Picker>
+                                )}
                             </View>
                         </View>
 
@@ -581,6 +659,18 @@ const styles = StyleSheet.create({
     picker: {
         height: 50,
         color: '#2B4F8C',
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 15,
+        minHeight: 50,
+    },
+    loadingText: {
+        marginLeft: 10,
+        color: '#666',
+        fontSize: 14,
     },
     buttonContainer: {
         flexDirection: 'row',

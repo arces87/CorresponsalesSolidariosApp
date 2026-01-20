@@ -45,8 +45,7 @@ const AlertasScreen = () => {
       const resultado = await ApiService.crearAlerta({
         idTipo: tipo,
         descripcion: descripcion.trim(),
-        //usuario: userData.usuario,
-        usuario: 'CTORRES',
+        usuario: userData.usuario,        
       });
       
       if(resultado){

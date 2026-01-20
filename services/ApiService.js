@@ -2,14 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
-//PMV
-//const BASE_URL = 'http://186.46.122.74:9004/api/v1.0';
+//LOCAL
 const BASE_URL = 'http://localhost:5001/api/v1.0';
-const imei = 'A7ADE24C28FA418DC3F4396F826E8BA8';
-const mac = '8a24f9d9eb936a84';
+const imei = '88F33DE43A5D40F4F5C4B86397B96A0D';
+const mac = '022b5f75d756b287';
 
 // APP
-//const BASE_URL = 'http://186.5.29.68:9731/api/v1.0';
+//const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
 //const imei = Device.osInternalBuildId || Device.deviceName || '';
 //const mac = getGUID(imei);
 
@@ -404,7 +403,7 @@ class ApiService {
     }
   }
 
-  static async cambiarContrasena({ token, contrasenia }) {
+  static async cambiarContrasena({ token, contrasenia, contraseniaAnterior }) {
     const url = `${BASE_URL}/Usuario/CambioContrasenia`;
     
     try {
@@ -415,7 +414,8 @@ class ApiService {
       
       const body = {
         token,
-        contrasenia
+        contrasenia,
+        contraseniaAnterior
       };
       
       const response = await fetch(url, {
@@ -951,7 +951,7 @@ class ApiService {
         longitud: location.longitud,
         mac,
       };
-
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -1075,24 +1075,20 @@ class ApiService {
    * @property {number} [saldoCuentaCorresponsal] - Saldo actual de la cuenta del corresponsal
    */
   static async efectivizarPrestamo({
-    secuencialCuentaCliente,
-    numeroPrestamo = null,
+    numeroPrestamo,
     valor,
-    nombreCliente = null,
-    identificacionCliente = null,
-    concepto = null,
-    usuario = null,
-    imei = null,
-    latitud = null,
-    longitud = null,
-    mac = null
-  } = {}) {
+    nombreCliente,
+    identificacionCliente,
+    concepto,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
     const url = `${BASE_URL}/Prestamo/efectivizarPrestamos`;
-    
     try {
       const isConnected = await NetworkService.checkConnection();
-      const token = await this.getAuthToken();
-      
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
       }
@@ -1101,29 +1097,29 @@ class ApiService {
       const location = await LocationService.getLocation();
       
       const body = {
-        secuencialCuentaCliente: parseInt(secuencialCuentaCliente, 10),
-        numeroPrestamo,
+        numeroPrestamo: numeroPrestamo || null,
         valor: parseFloat(valor),
-        nombreCliente,
-        identificacionCliente,
-        concepto: concepto || 'Pago de préstamo',
-        usuario: usuario,
-        imei: imei,
-        latitud: location.latitud || 0,
-        longitud: location.longitud || 0,
-        mac: mac
+        nombreCliente: nombreCliente || null,
+        identificacionCliente: identificacionCliente || null,
+        concepto: concepto || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
       };
 
       console.log('Solicitando efectivización de préstamo a:', url);
       console.log('Datos enviados:', JSON.stringify(body, null, 2));
-
+      
+      const token = await this.getAuthToken();
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Authorization': token ? `Bearer ${token}` : '',
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
 
       const responseText = await response.text();
@@ -1131,23 +1127,16 @@ class ApiService {
       if (!response.ok) {
         let errorMessage = `Error al efectivizar el préstamo (${response.status})`;
         try {
-          const errorData = responseText ? JSON.parse(responseText) : {};
-          errorMessage = errorData.message || errorMessage;
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
         } catch (e) {
-          console.error('Error al parsear respuesta de error:', e);
+          errorMessage = responseText || errorMessage;
         }
         console.error('Error en la respuesta:', errorMessage);
         throw new Error(errorMessage);
       }
-
-      // Intentar parsear la respuesta como JSON
-      try {
-        const data = responseText ? JSON.parse(responseText) : {};
-        return data;
-      } catch (e) {
-        console.error('Error al parsear respuesta JSON:', e);
-        throw new Error('Error al procesar la respuesta del servidor');
-      }
+      
+      return responseText ? JSON.parse(responseText) : {};
     } catch (error) {
       console.error('Error en efectivizarPrestamo:', error);
       throw error;
@@ -1222,11 +1211,21 @@ class ApiService {
       
       if (!response.ok) {
         let errorMessage = `Error al obtener la lista de préstamos (${response.status})`;
-        try {
-          const errorData = responseText ? JSON.parse(responseText) : {};
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error('Error al parsear respuesta de error:', e);
+        if (responseText) {
+          // Intentar parsear solo si parece ser JSON (empieza con { o [)
+          const trimmedText = responseText.trim();
+          if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
+            try {
+              const errorData = JSON.parse(responseText);
+              errorMessage = errorData.message || errorData.title || errorMessage;
+            } catch (e) {
+              // Si falla el parseo, usar el texto directamente
+              errorMessage = responseText;
+            }
+          } else {
+            // Si no es JSON, usar el texto directamente como mensaje
+            errorMessage = responseText;
+          }
         }
         console.error('Error en la respuesta:', errorMessage);
         throw new Error(errorMessage);
@@ -1614,6 +1613,950 @@ class ApiService {
       }
     } catch (error) {
       console.error('Error en procesaCuentasPorCobrar:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesa un pago de servicio
+   * @param {Object} params - Parámetros para el pago
+   * @param {string} [params.comision] - Comisión del pago
+   * @param {string} [params.nombreCliente] - Nombre del cliente
+   * @param {string} [params.descripcion] - Descripción del pago
+   * @param {number} [params.secuencialCuentaCliente] - ID de la cuenta del cliente
+   * @param {string} [params.idProducto] - ID del producto
+   * @param {string} [params.referencia] - Referencia del pago
+   * @param {number} params.valor - Valor del pago
+   * @param {string} [params.valorTonelaje] - Valor tonelaje
+   * @param {string} [params.identificacion] - Identificación del cliente
+   * @param {number} [params.numeroCuotasPensionesAlimenticiaPersona] - Número de cuotas
+   * @param {string} [params.codigoPagarPensionesAlimenticiaEmpresa] - Código de empresa
+   * @param {number} [params.secuencialResultadoTransaccion] - Secuencial de resultado
+   * @param {boolean} [params.comisionRubro] - Si aplica comisión por rubro
+   * @param {Array} [params.rubros] - Array de rubros
+   * @param {string} [params.usuario] - Usuario que realiza la operación
+   * @returns {Promise<Object>} - Respuesta con el resultado del pago
+   */
+  static async pagarServicio({
+    comision,
+    nombreCliente,
+    descripcion,
+    secuencialCuentaCliente,
+    idProducto,
+    referencia,
+    valor,
+    valorTonelaje,
+    identificacion,
+    numeroCuotasPensionesAlimenticiaPersona,
+    codigoPagarPensionesAlimenticiaEmpresa,
+    secuencialResultadoTransaccion,
+    comisionRubro,
+    rubros,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/pagarServicio`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        comision: comision || null,
+        nombreCliente: nombreCliente || null,
+        descripcion: descripcion || null,
+        secuencialCuentaCliente: secuencialCuentaCliente || null,
+        idProducto: idProducto || null,
+        referencia: referencia || null,
+        valor: parseFloat(valor),
+        valorTonelaje: valorTonelaje || null,
+        identificacion: identificacion || null,
+        numeroCuotasPensionesAlimenticiaPersona: numeroCuotasPensionesAlimenticiaPersona || null,
+        codigoPagarPensionesAlimenticiaEmpresa: codigoPagarPensionesAlimenticiaEmpresa || null,
+        secuencialResultadoTransaccion: secuencialResultadoTransaccion || null,
+        comisionRubro: comisionRubro || null,
+        rubros: rubros || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando pago de servicio a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar el pago de servicio (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en pagarServicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene la lista de servicios disponibles
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @returns {Promise<Object>} - Lista de servicios disponibles
+   */
+  static async obtenerServicios({
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/PagoServicios/obtenerServicios`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando servicios a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener servicios (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en obtenerServicios:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene los productos de un servicio
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} params.idGrupo - ID del grupo de servicios
+   * @param {string} [params.servicio] - ID del servicio
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @returns {Promise<Object>} - Lista de productos del servicio
+   */
+  static async obtenerProductos({
+    idGrupo,
+    servicio,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/obtenerProductos`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        idGrupo: idGrupo || null,
+        servicio: servicio || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando productos a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener productos (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en obtenerProductos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Consulta un servicio para obtener información de pago
+   * @param {Object} params - Parámetros para la consulta
+   * @param {string} params.idProducto - ID del producto
+   * @param {string} [params.referencia] - Referencia del servicio
+   * @param {string} [params.identificacion] - Identificación del cliente
+   * @param {string} [params.valorTonelaje] - Valor tonelaje
+   * @param {number} params.numeroCuotasPensionesAlimenticiaPersona - Número de cuotas
+   * @param {string} [params.codigoPagarPensionesAlimenticiaEmpresa] - Código de empresa
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @returns {Promise<Object>} - Información del servicio consultado
+   */
+  static async consultaServicio({
+    idProducto,
+    referencia,
+    identificacion,
+    valorTonelaje,
+    numeroCuotasPensionesAlimenticiaPersona,
+    codigoPagarPensionesAlimenticiaEmpresa,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/consultaServicio`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        idProducto: idProducto || null,
+        referencia: referencia || null,
+        identificacion: identificacion || null,
+        valorTonelaje: valorTonelaje || null,
+        numeroCuotasPensionesAlimenticiaPersona: numeroCuotasPensionesAlimenticiaPersona || null,
+        codigoPagarPensionesAlimenticiaEmpresa: codigoPagarPensionesAlimenticiaEmpresa || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Consultando servicio a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al consultar servicio (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en consultaServicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Realiza un reverso de un pago facilito
+   * @param {Object} params - Parámetros para el reverso
+   * @param {string} [params.documento] - Número de documento
+   * @param {number} params.secuencialEnvioPago - Secuencial del envío de pago
+   * @param {string} [params.usuario] - Usuario que realiza el reverso
+   * @returns {Promise<Object>} - Resultado del reverso
+   */
+  static async reversoFacilito({
+    documento,
+    secuencialEnvioPago,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/reversoFacilito`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        documento: documento || null,
+        secuencialEnvioPago: secuencialEnvioPago || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando reverso facilito a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al realizar reverso facilito (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en reversoFacilito:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Devuelve una simulación de pago
+   * @param {Object} params - Parámetros para la simulación
+   * @param {Object} params.request - Objeto con los datos de la solicitud de pago
+   * @param {string} [params.usuario] - Usuario que realiza la simulación
+   * @returns {Promise<Object>} - Resultado de la simulación de pago
+   */
+  static async devuelveSimulacionPago({
+    request,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/devuelveSimulacionPago`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        request: request || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando simulación de pago a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener simulación de pago (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en devuelveSimulacionPago:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesa el pago de un servicio
+   * @param {Object} params - Parámetros para el pago
+   * @param {Object} params.request - Objeto con los datos de la solicitud de pago (ProcesaPagoServicioRequest)
+   * @param {string} [params.usuario] - Usuario que realiza el pago
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Resultado del pago procesado (ProcesaPagoServicioResponse)
+   *   @property {number} codigoEstado - Código de estado de la respuesta
+   *   @property {string} [mensaje] - Mensaje de la respuesta
+   *   @property {Object} [datos] - Datos del pago (DatosPagoServicio)
+   *   @property {string} [numeroDocumento] - Número de documento generado
+   *   @property {string} [fecha] - Fecha de la transacción
+   *   @property {number} [valor] - Valor del pago
+   *   @property {number} [saldoCuentaCorresponsal] - Saldo actual de la cuenta del corresponsal
+   */
+  static async procesaPagoServicio({
+    request,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/procesaPagoServicio`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        request: request || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud !== undefined ? customLatitud : location.latitud,
+        longitud: customLongitud !== undefined ? customLongitud : location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Procesando pago de servicio a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar pago de servicio (${response.status})`;
+        if (responseText) {
+          const trimmedText = responseText.trim();
+          if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
+            try {
+              const errorData = JSON.parse(responseText);
+              errorMessage = errorData.mensaje || errorData.message || errorData.title || errorMessage;
+            } catch (e) {
+              errorMessage = responseText;
+            }
+          } else {
+            errorMessage = responseText;
+          }
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      // Parsear la respuesta según el schema ProcesaPagoServicioResponse
+      const result = responseText ? JSON.parse(responseText) : {};
+      
+      // Validar que la respuesta tenga la estructura esperada
+      if (result.codigoEstado !== undefined && result.codigoEstado !== 0 && result.mensaje) {
+        throw new Error(result.mensaje || 'Error al procesar el pago de servicio');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error en procesaPagoServicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesa la reimpresión de una transacción
+   * @param {Object} params - Parámetros para la reimpresión
+   * @param {Object} params.request - Objeto con los datos de la solicitud
+   * @param {string} [params.usuario] - Usuario que realiza la reimpresión
+   * @returns {Promise<Object>} - Resultado de la reimpresión
+   */
+  static async procesaReimprimirTransaccion({
+    request,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/procesaReimprimirTransaccion`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        request: request || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Procesando reimpresión de transacción a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar reimpresión de transacción (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en procesaReimprimirTransaccion:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesa el extorno de un servicio
+   * @param {Object} params - Parámetros para el extorno
+   * @param {Object} params.request - Objeto con los datos de la solicitud de extorno
+   * @param {string} [params.usuario] - Usuario que realiza el extorno
+   * @returns {Promise<Object>} - Resultado del extorno
+   */
+  static async procesaExtornarServicio({
+    request,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/PagoServicios/procesaExtornarServicio`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        request: request || null,
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Procesando extorno de servicio a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al procesar extorno de servicio (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en procesaExtornarServicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Devuelve las categorías de servicios disponibles
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @param {number} [params.secuencialEmpresa] - ID de la empresa
+   * @returns {Promise<Object>} - Lista de categorías de servicios
+   */
+  static async devuelveCategoriasServicios({
+    usuario,
+    secuencialEmpresa,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/PagoServicios/devuelveCategoriasServicios`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        secuencialEmpresa: secuencialEmpresa || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando categorías de servicios a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener categorías de servicios (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en devuelveCategoriasServicios:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Devuelve el detalle de un servicio
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @param {string} [params.idServicio] - ID del servicio
+   * @param {string} [params.valor] - Valor para la consulta
+   * @returns {Promise<Object>} - Detalle del servicio
+   */
+  static async devuelveDetalleDelServicio({
+    usuario,
+    idServicio,
+    valor,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/PagoServicios/devuelveDetalleDelServicio`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        idServicio: idServicio || null,
+        valor: valor || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando detalle del servicio a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener detalle del servicio (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en devuelveDetalleDelServicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Devuelve los servicios por categoría
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.usuario] - Usuario que realiza la consulta
+   * @param {string} [params.nombreCategoria] - Nombre de la categoría
+   * @returns {Promise<Object>} - Lista de servicios de la categoría
+   */
+  static async devuelveServiciosPorCategoria({
+    usuario,
+    nombreCategoria,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  } = {}) {
+    const url = `${BASE_URL}/PagoServicios/devuelveServiciosPorCategoria`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        usuario: usuario || null,
+        nombreCategoria: nombreCategoria || null,
+        imei: customImei || imei,
+        latitud: customLatitud || location.latitud,
+        longitud: customLongitud || location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando servicios por categoría a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener servicios por categoría (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en devuelveServiciosPorCategoria:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Devuelve el nombre de una empresa según su secuencial
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {number} [params.secuencial] - Secuencial de la empresa
+   * @returns {Promise<Object>} - Respuesta con el nombre de la empresa
+   *   @property {string} [nombreEmpresa] - Nombre de la empresa
+   */
+  static async devuelveNombreEmpresa({
+    secuencial
+  } = {}) {
+    const url = `${BASE_URL}/Generales/devuelveNombreEmpresa`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+      
+      const body = {
+        secuencial: secuencial !== undefined ? secuencial : null
+      };
+
+      console.log('Solicitando nombre de empresa a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al obtener nombre de empresa (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en devuelveNombreEmpresa:', error);
       throw error;
     }
   }

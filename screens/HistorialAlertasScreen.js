@@ -17,9 +17,8 @@ const HistorialAlertasScreen = () => {
   const fetchAlertas = async () => {
     setLoading(true);
     try {
-      const data = await ApiService.listarAlertas({ 
-        usuario: 'CTORRES'
-        //usuario: userData?.usuario
+      const data = await ApiService.listarAlertas({         
+        usuario: userData?.usuario
       });
       setAlertas(data.alertas || []);
     } catch (err) {

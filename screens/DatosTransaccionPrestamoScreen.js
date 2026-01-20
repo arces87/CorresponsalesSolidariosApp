@@ -3,7 +3,7 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
@@ -137,7 +137,7 @@ export default function DatosTransaccionPrestamoScreen() {
       setCliente(resultado);
       console.log('Cliente encontrado:', resultado);
 
-      // Buscar cuentas del cliente
+      // Buscar prestamos del cliente
       await buscarPrestamosCliente(
         resultado.identificacion,        
         true);
@@ -167,8 +167,8 @@ export default function DatosTransaccionPrestamoScreen() {
         usuario: userData?.usuario        
       });
 
-      console.log('Cuentas encontradas:', resultado);
-      setCuentas(resultado.informacionPrestamos || []);
+      console.log('Prestamos encontrados:', resultado);
+      setPrestamos(resultado.informacionPrestamos || []);
 
       // Seleccionar la primera prestamo por defecto si hay prestamos
       if (resultado.informacionPrestamos?.length > 0) {
@@ -219,6 +219,11 @@ export default function DatosTransaccionPrestamoScreen() {
             </View>
           </View>
         </View>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={true}
+        >
         <View style={globalStyles.card}>
           <Text style={styles.instruction}>
             {'Seleccione los datos de la transacción'}
@@ -355,6 +360,7 @@ export default function DatosTransaccionPrestamoScreen() {
             </View>
           )}
         </View>
+        </ScrollView>
       </LinearGradient>
     </View>
   );
@@ -572,5 +578,13 @@ const styles = StyleSheet.create({
   picker: {
     height: 40,
     width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
 });
