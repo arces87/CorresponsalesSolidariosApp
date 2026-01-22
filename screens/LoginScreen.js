@@ -154,8 +154,9 @@ export default function LoginScreen() {
   // Función para obtener el Device ID
   const getDeviceId = async () => {
     try {
-      return Device.osInternalBuildId || Device.deviceName || '';
+      return Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
     } catch (error) {
+      console.warn('Error obteniendo Device ID:', error);
       return '';
     }
   };

@@ -1,6 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Device from 'expo-device';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
+
+// Función para generar un GUID tipo hash hexa padded
+function getGUID(imei) {
+  let hash = 0;
+  if (!imei) return '';
+  for (let i = 0; i < imei.length; i++) {
+    hash = ((hash << 5) - hash) + imei.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(16, '0');
+}
 
 //LOCAL
 //const BASE_URL = 'http://localhost:5001/api/v1.0';
@@ -9,7 +21,14 @@ import NetworkService from './NetworkService';
 
 // APP
 const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
-const imei = Device.osInternalBuildId || Device.deviceName || '';
+// Obtener IMEI de forma segura
+let imei = '';
+try {
+  imei = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
+} catch (error) {
+  console.warn('Error obteniendo Device ID:', error);
+  imei = '';
+}
 const mac = getGUID(imei);
 
 class ApiService {

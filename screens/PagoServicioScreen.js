@@ -48,7 +48,7 @@ export default function PagoServicioScreen() {
     }
 
     setLoading(true);
-    try {      
+    try {
       const reciboData = reciboSeleccionado ? recibosConDetalles.get(reciboSeleccionado) : null;
       
       // Obtener el valor del recibo seleccionado
@@ -86,7 +86,7 @@ export default function PagoServicioScreen() {
 
       setUserData(prevData => {
         return {
-          ...prevData,
+        ...prevData,
           idservicio: servicioSeleccionado,
           proveedorsevicio: proveedorServicio,
           recibo: reciboData || null,        
@@ -343,8 +343,8 @@ export default function PagoServicioScreen() {
       if (!categoriaSeleccionada) {
         setServicios([]);
         setServicioSeleccionado('');
-        return;
-      }
+      return;
+    }
 
       setCargandoServicios(true);
       setServicios([]);
@@ -391,7 +391,7 @@ export default function PagoServicioScreen() {
     setRecibos([]);
     setReciboSeleccionado('');
     setRecibosConDetalles(new Map());
-    
+
     try {
       console.log('Consultando recibos con:', {
         idProducto: servicioSeleccionado,
@@ -625,15 +625,15 @@ export default function PagoServicioScreen() {
                 {cargandoCategorias ? (
                   <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
                 ) : (
-                  <Picker
+                <Picker
                     selectedValue={categoriaSeleccionada}
                     onValueChange={(itemValue) => setCategoriaSeleccionada(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#000"
-                  >
+                  style={styles.picker}
+                  dropdownIconColor="#000"
+                >
                     {categoriasServicios.length > 0 ? (
                       categoriasServicios.map((categoria) => (
-                        <Picker.Item
+                    <Picker.Item
                           key={categoria.nombre}
                           label={categoria.nombre || 'Sin nombre'}
                           value={categoria.nombre || ''}
@@ -644,12 +644,12 @@ export default function PagoServicioScreen() {
                     )}
                   </Picker>
                 )}
-              </View>
+                    </View>
               
               {categoriaSeleccionada && (
                 <>
                   <Text style={styles.label}>Servicios</Text>
-                  <View style={styles.pickerContainer}>
+                    <View style={styles.pickerContainer}>
                     {cargandoServicios ? (
                       <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
                     ) : (
@@ -661,35 +661,35 @@ export default function PagoServicioScreen() {
                       >
                         {servicios.length > 0 ? (
                           servicios.map((servicio) => (
-                            <Picker.Item
+                          <Picker.Item
                               key={servicio.id}
                               label={servicio.nombre || 'Sin nombre'}
                               value={servicio.id || ''}
-                            />
+                          />
                           ))
                         ) : (
                           <Picker.Item label="No hay servicios disponibles" value="" />
                         )}
                       </Picker>
                     )}
-                  </View>
+                    </View>
                 </>
               )}
 
               {/* Información del servicio seleccionado */}
               {servicioSeleccionado && (
-                <View style={styles.serviceDetails}>
-                  <Text style={styles.label}>Número de Contrato/Cuenta:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={numeroContrato}
-                    onChangeText={setNumeroContrato}
-                    placeholder="Ingrese el número de contrato o cuenta"
-                    keyboardType="default"
-                  />
-                  
+                      <View style={styles.serviceDetails}>
+                        <Text style={styles.label}>Número de Contrato/Cuenta:</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={numeroContrato}
+                          onChangeText={setNumeroContrato}
+                          placeholder="Ingrese el número de contrato o cuenta"
+                          keyboardType="default"
+                        />
+
                   <Text style={styles.label}>Identificación del Titular:</Text>
-                  <TextInput
+                            <TextInput
                     style={styles.input}
                     value={identificacionTitular}
                     onChangeText={setIdentificacionTitular}
@@ -708,7 +708,7 @@ export default function PagoServicioScreen() {
                   />
                   
                   {/* Botón Consultar Recibos */}
-                  <TouchableOpacity
+                          <TouchableOpacity
                     style={[
                       styles.detailsButton,
                       (!numeroContrato || cargandoRecibos) && styles.detailsButtonDisabled
@@ -721,7 +721,7 @@ export default function PagoServicioScreen() {
                     ) : (
                       <Text style={styles.detailsButtonText}>CONSULTAR</Text>
                     )}
-                  </TouchableOpacity>
+                          </TouchableOpacity>
 
                   {/* Combo de Recibos */}
                   {numeroContrato && (
@@ -755,7 +755,7 @@ export default function PagoServicioScreen() {
                             )}
                           </Picker>
                         )}
-                      </View>
+                        </View>
 
                       {/* Información del recibo seleccionado */}
                       {reciboSeleccionado && recibos.length > 0 && (() => {
@@ -788,15 +788,15 @@ export default function PagoServicioScreen() {
                               <View style={styles.reciboInfoRow}>
                                 <Text style={styles.reciboInfoLabel}>Monto:</Text>
                                 <Text style={styles.reciboInfoValue}>${parseFloat(monto).toFixed(2)}</Text>
-                              </View>
-                            )}
+                      </View>
+                    )}
                             {fechaVencimiento && (
                               <View style={styles.reciboInfoRow}>
                                 <Text style={styles.reciboInfoLabel}>Fecha Vencimiento:</Text>
                                 <Text style={styles.reciboInfoValue}>{fechaVencimiento}</Text>
-                              </View>
+                  </View>
                             )}
-                          </View>
+                </View>
                         ) : null;
                       })()}
 
