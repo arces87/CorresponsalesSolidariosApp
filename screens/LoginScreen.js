@@ -262,11 +262,16 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {nombreEmpresa ? (
-          <View style={styles.empresaContainer}>
-            <Text style={styles.empresaText} allowFontScaling={false}>{nombreEmpresa}</Text>
+        <View style={styles.bottomInfoContainer}>
+          {nombreEmpresa ? (
+            <View style={styles.empresaContainer}>
+              <Text style={styles.empresaText} allowFontScaling={false}>{nombreEmpresa}</Text>
+            </View>
+          ) : null}
+          <View style={styles.versionContainer}>
+            <Text style={styles.versionText} allowFontScaling={false}>Versión 1.1</Text>
           </View>
-        ) : null}
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -375,7 +380,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline',
   },
-  empresaContainer: {
+  bottomInfoContainer: {
     position: 'absolute',
     bottom: 20,
     left: 0,
@@ -384,10 +389,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
+  empresaContainer: {
+    marginBottom: 8,
+  },
   empresaText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  versionContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  versionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '400',
     textAlign: 'center',
   },
 });
