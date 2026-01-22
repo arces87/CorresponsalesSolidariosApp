@@ -274,7 +274,6 @@ const OtpVerificacionScreen = () => {
       }
      
       if(accionTransaccion === 'deposito'){
-        alert('Deposito');
         console.log('userData', userData);
         const response = await ApiService.procesarDeposito({
           secuencialCuenta: userData?.secuencialcuenta,
@@ -295,7 +294,6 @@ const OtpVerificacionScreen = () => {
       }
       
       if (accionTransaccion === 'retiro') {
-        alert('Retiro');    
         console.log('userData', userData);    
         const response = await ApiService.procesarRetiro({
           secuencialCuenta: userData?.secuencialcuenta,
@@ -316,7 +314,6 @@ const OtpVerificacionScreen = () => {
       }
 
       if (accionTransaccion === 'prestamo') {
-        alert('Prestamo');
         console.log('userData', userData);  
         
         const response = await ApiService.efectivizarPrestamo({          
@@ -328,28 +325,39 @@ const OtpVerificacionScreen = () => {
           usuario: userData?.usuario 
         });
         console.log('Response:', response);
-        respuestaServicio.fecha = response.fechaTransaccion;
+        respuestaServicio.fecha = response.fecha;
         respuestaServicio.numeroCuenta = response.numeroPrestamo;
         respuestaServicio.numeroTransaccion = response.numeroDocumento;
         respuestaServicio.monto = response.valor;
       }
 
       if (accionTransaccion === 'obligaciones') {
-        alert('Obligaciones');
         console.log('userData', userData);  
-        /*
-        const response = await ApiService.procesarRetiro({
-          secuencialCuenta: userData?.secuencialCuenta,
-          numeroCuentaCliente: userData?.numeroCuentaCliente,
-          tipoCuentaCliente: userData?.tipoCuentaCliente,
-          valor: monto,
-          nombreCliente: userData?.nombreCliente,
-          identificacionCliente: userData?.identificacionCliente,
-          tipoIdentificacionCliente: userData?.tipoIdentificacionCliente,                   
-          descripcion: accionTransaccion,
+       
+        const response = await ApiService.procesaCuentasPorCobrar({
+          nombreCliente: userData?.nombrecliente,
+          identificacionCliente: userData?.identificacioncliente,
+          valorAfectado: monto,          
+          cuentasPorCobrar: userData?.cuentasPorCobrar,          
           usuario: userData?.usuario,
         });
-        console.log('Response:', response);*/
+        console.log('Response:', response);
+        
+        // Verificar que pagoCuentaResponse existe y tiene elementos
+        if (!response.pagoCuentaResponse || !Array.isArray(response.pagoCuentaResponse) || response.pagoCuentaResponse.length === 0) {
+          throw new Error('No se recibieron documentos de pago en la respuesta');
+        }
+        
+        // Concatenar todos los documentos separados por coma
+        const documentos = response.pagoCuentaResponse.map(pago => pago.documento).join(', ');
+        
+        // Sumar todos los valores para el monto total
+        const valorTotal = response.pagoCuentaResponse.reduce((sum, pago) => sum + (pago.valor || 0), 0);
+        
+        respuestaServicio.fecha = response.fecha;
+        respuestaServicio.numeroCuenta = response.pagoCuentaResponse[0].detalle; // Usar el detalle del primer pago
+        respuestaServicio.numeroTransaccion = documentos; // Todos los documentos separados por coma
+        respuestaServicio.monto = valorTotal || monto; // Suma de todos los valores o el monto original
       }
 
       if (accionTransaccion === 'pago' || accionTransaccion === 'pagoServicio') {
@@ -393,7 +401,7 @@ const OtpVerificacionScreen = () => {
         // Agregar recibos solo si hay recibo
         if (reciboData) {
           const reciboObj = {
-            id: reciboData.id,
+            id: userData?.referencia,
             numero: reciboData.numero,
             fechaVencimiento: reciboData.fechaVencimiento
           }; 
@@ -417,7 +425,7 @@ const OtpVerificacionScreen = () => {
           request.recibos = [reciboObj];
           
           request.camposAdicionales = [{
-            valor: reciboData.id,
+            valor: userData?.referencia,
             campoPago: {
               id: "0"
             }
@@ -585,20 +593,20 @@ const OtpVerificacionScreen = () => {
           </TouchableOpacity>
 
           {(validarOtpAgente || validarOtpCliente) && (
-            <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>
-                ¿No recibió el código?{' '}
-                {countdown > 0 ? (
-                  <Text style={styles.resendDisabled}>
+          <View style={styles.resendContainer}>
+            <Text style={styles.resendText}>
+              ¿No recibió el código?{' '}
+              {countdown > 0 ? (
+                <Text style={styles.resendDisabled}>
                     Tiempo restante: {countdown}s
-                  </Text>
-                ) : (
+                </Text>
+              ) : (
                   <TouchableOpacity onPress={handleResendOtp}>
                     <Text style={styles.resendLink}>Reenviar OTP</Text>
                   </TouchableOpacity>
-                )}
-              </Text>
-            </View>
+              )}
+            </Text>
+          </View>
           )}
         </View>
       </LinearGradient>

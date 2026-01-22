@@ -3,14 +3,14 @@ import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
 //LOCAL
-const BASE_URL = 'http://localhost:5001/api/v1.0';
-const imei = '88F33DE43A5D40F4F5C4B86397B96A0D';
-const mac = '022b5f75d756b287';
+//const BASE_URL = 'http://localhost:5001/api/v1.0';
+//const imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
+//const mac = '022b5f75d756b285';
 
 // APP
-//const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
-//const imei = Device.osInternalBuildId || Device.deviceName || '';
-//const mac = getGUID(imei);
+const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
+const imei = Device.osInternalBuildId || Device.deviceName || '';
+const mac = getGUID(imei);
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -1551,13 +1551,14 @@ class ApiService {
   /**
    * Procesa el pago de cuentas por cobrar
    * @param {Object} params - Parámetros para la solicitud
+   * @param {string} [params.nombreCliente] - Nombre del cliente
    * @param {string} [params.identificacionCliente] - Identificación del cliente
    * @param {Array} params.cuentasPorCobrar - Array de rubros por cobrar con secuencial y valorCobrado
    * @param {number} params.valorAfectado - Valor total afectado
    * @param {string} [params.usuario] - Nombre de usuario
    * @returns {Promise<Object>} - Objeto con los documentos generados
    */
-  static async procesaCuentasPorCobrar({ identificacionCliente, cuentasPorCobrar, valorAfectado, usuario }) {
+  static async procesaCuentasPorCobrar({ nombreCliente, identificacionCliente, cuentasPorCobrar, valorAfectado, usuario }) {
     const url = `${BASE_URL}/Cuenta/procesaCuentasPorCobrar`;
     try {
       const isConnected = await NetworkService.checkConnection();
@@ -1568,6 +1569,7 @@ class ApiService {
 
       const location = await LocationService.getLocation();
       const body = {
+        nombreCliente: nombreCliente || null,
         identificacionCliente: identificacionCliente || null,
         cuentasPorCobrar: cuentasPorCobrar || [],
         valorAfectado: valorAfectado || 0,

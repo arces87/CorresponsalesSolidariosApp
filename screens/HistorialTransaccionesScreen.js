@@ -143,7 +143,7 @@ export default function HistorialTransaccionesScreen() {
                   <Text style={globalStyles.backArrow}>‹</Text>
                 </TouchableOpacity>
                 <View style={globalStyles.headerTitleContainer}>
-                  <Text style={globalStyles.headerTitle}>HISTORIAL TRANSACCIONES</Text>
+                  <Text style={globalStyles.headerTitle}>HISTORIAL</Text>
                 </View>
               </View>
             </View>

@@ -42,12 +42,18 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    SoLoader.init(this, OpenSourceMergedSoMapping)
-    if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-      // If you opted-in for the New Architecture, we load the native entry point for this app.
-      load()
+    try {
+      SoLoader.init(this, OpenSourceMergedSoMapping)
+      if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+        // If you opted-in for the New Architecture, we load the native entry point for this app.
+        load()
+      }
+      ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    } catch (e: Exception) {
+      android.util.Log.e("MainApplication", "Error en onCreate", e)
+      e.printStackTrace()
+      throw e
     }
-    ApplicationLifecycleDispatcher.onApplicationCreate(this)
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {
