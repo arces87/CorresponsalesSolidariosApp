@@ -52,4 +52,7 @@
 # Keep Location
 -keep class expo.modules.location.** { *; }
 
+# Asegurar que network_security_config.xml se incluya
+-keep class android.net.NetworkSecurityConfig { *; }
+
 # Add any project specific keep options here:
