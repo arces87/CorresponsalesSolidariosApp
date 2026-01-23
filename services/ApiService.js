@@ -108,8 +108,22 @@ class ApiService {
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
-      }      
-      const location = await LocationService.getLocation();
+      }
+      
+      // Obtener ubicación con timeout para no bloquear
+      let location;
+      try {
+        location = await Promise.race([
+          LocationService.getLocation(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout obteniendo ubicación')), 15000)
+          )
+        ]);
+      } catch (locationError) {
+        console.warn('Error obteniendo ubicación, usando valores por defecto:', locationError);
+        location = { latitud: 0, longitud: 0 };
+      }
+      
       const body = {
         usuario,
         contrasenia,
@@ -119,14 +133,34 @@ class ApiService {
         longitud: location.longitud,
       };
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-      //console.log('respuesta:',response);
+      console.log('Intentando login en:', url);
+      
+      // Fetch con timeout usando AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+      
+      let response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.');
+        }
+        if (fetchError.message.includes('Network request failed')) {
+          throw new Error('No se pudo conectar al servidor. Verifique su conexión a internet.');
+        }
+        throw fetchError;
+      }
+      
       const text = await response.text();
       let data;
       try {
@@ -141,6 +175,7 @@ class ApiService {
       if (data.token) await AsyncStorage.setItem('authToken', data.token);
       return data;
     } catch (error) {
+      console.error('Error en login:', error);
       throw error;
     }
   }
