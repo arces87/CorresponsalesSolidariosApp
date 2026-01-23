@@ -105,7 +105,12 @@ class ApiService {
   static async login({ usuario, contrasenia}) {
     const url = `${BASE_URL}/Usuario/login`;
     try {
+      console.log('=== INICIO LOGIN ===');
+      console.log('URL:', url);
+      console.log('BASE_URL:', BASE_URL);
+      
       const isConnected = await NetworkService.checkConnection();
+      console.log('Estado de conexión:', isConnected);
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
       }
@@ -134,6 +139,7 @@ class ApiService {
       };
 
       console.log('Intentando login en:', url);
+      console.log('Body enviado:', JSON.stringify(body, null, 2));
       
       // Fetch con timeout usando AbortController
       const controller = new AbortController();
@@ -141,6 +147,7 @@ class ApiService {
       
       let response;
       try {
+        console.log('Iniciando petición fetch...');
         response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -150,13 +157,19 @@ class ApiService {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+        console.log('Respuesta recibida, status:', response.status);
       } catch (fetchError) {
         clearTimeout(timeoutId);
+        console.error('Error en fetch:', fetchError);
+        console.error('Error name:', fetchError.name);
+        console.error('Error message:', fetchError.message);
+        console.error('Error stack:', fetchError.stack);
+        
         if (fetchError.name === 'AbortError') {
           throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.');
         }
-        if (fetchError.message.includes('Network request failed')) {
-          throw new Error('No se pudo conectar al servidor. Verifique su conexión a internet.');
+        if (fetchError.message && fetchError.message.includes('Network request failed')) {
+          throw new Error('No se pudo conectar al servidor. Verifique su conexión a internet y que el servidor esté disponible en http://190.116.29.99:9001');
         }
         throw fetchError;
       }
