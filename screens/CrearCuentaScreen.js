@@ -4,7 +4,9 @@ import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -12,6 +14,7 @@ export default function CrearCuentaScreen() {
   const router = useRouter();
   const { userData, catalogos } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -88,12 +91,12 @@ export default function CrearCuentaScreen() {
 
   const handleBuscarCliente = async () => {
       if (!identificacion.trim()) {
-        alert('Por favor ingrese un número de identificación');
+        mostrarAdvertencia('Campo requerido', 'Por favor ingrese un número de identificación');
         return;
       }
   
       if (!tipoId) {
-        alert('Por favor seleccione un tipo de identificación');
+        mostrarAdvertencia('Campo requerido', 'Por favor seleccione un tipo de identificación');
         return;
       }
   
@@ -120,7 +123,7 @@ export default function CrearCuentaScreen() {
       } catch (error) {
         console.error('Error al buscar cliente:', error);
         setError(error.message || 'Error al buscar el cliente');
-        alert(error.message || 'No se pudo encontrar el cliente');
+        mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
       } finally {
         setLoading(false);
       }
@@ -128,12 +131,12 @@ export default function CrearCuentaScreen() {
 
   const  handleCrearCuenta = async () => {
     if (!tipoCuenta) {
-      alert('Por favor seleccione un tipo de cuenta');
+      mostrarAdvertencia('Campo requerido', 'Por favor seleccione un tipo de cuenta');
       return;
     }
 
     if (!cliente?.secuencialCliente) {
-      alert('No se encontró la información del cliente');
+      mostrarError('Error', 'No se encontró la información del cliente');
       return;
     }    
 
@@ -154,14 +157,20 @@ export default function CrearCuentaScreen() {
 
       if (response.cuentasCreadas?.length > 0) {
         const cuentaCreada = response.cuentasCreadas[0];
-        alert(`Cuenta creada exitosamente\nNúmero: ${cuentaCreada.codigoCuenta}\nTipo: ${cuentaCreada.tipoCuentaNombre}`);
-        router.back();
+        mostrarExito(
+          'Cuenta creada',
+          `Cuenta creada exitosamente\n\nNúmero: ${cuentaCreada.codigoCuenta}\nTipo: ${cuentaCreada.tipoCuentaNombre}`
+        );
+        // Esperar un momento antes de navegar para que el usuario vea el mensaje de éxito
+        setTimeout(() => {
+          router.back();
+        }, 2000);
       } else {
         throw new Error('No se pudo crear la cuenta');
       }
     } catch (error) {
       console.error('Error creando cuenta:', error);
-      alert(error.message || 'Error al crear la cuenta');
+      mostrarError('Error', error.message || 'Error al crear la cuenta');
     } finally {
       setLoading(false);
     }
@@ -297,6 +306,14 @@ export default function CrearCuentaScreen() {
           </View>
         </View>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </View>
   );
 }

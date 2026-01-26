@@ -5,7 +5,9 @@ import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -13,6 +15,7 @@ export default function CrearClienteScreen() {
     const router = useRouter();
     const { userData, catalogos, loadingCatalogos } = useContext(AuthContext);
     const insets = useSafeAreaInsets();
+    const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
     const [loading, setLoading] = useState(false);
 
     // Estados para los campos del formulario
@@ -219,7 +222,7 @@ export default function CrearClienteScreen() {
         const validationErrors = validateForm();
         
         if (validationErrors.length > 0) {
-            alert(validationErrors.join('\n'));
+            mostrarAdvertencia('Errores de validación', validationErrors.join('\n'));
             return;
         }
 
@@ -247,15 +250,17 @@ export default function CrearClienteScreen() {
             const response = await ApiService.crearCliente(clienteData);
 
             if (response.success) {
-                alert('Cliente creado correctamente', [
-                    { text: 'Aceptar', onPress: () => router.back() }
-                ]);
+                mostrarExito('Cliente creado', 'Cliente creado correctamente');
+                // Esperar un momento antes de navegar para que el usuario vea el mensaje de éxito
+                setTimeout(() => {
+                    router.back();
+                }, 1500);
             } else {
                 throw new Error(response.message || 'Error al crear el cliente');
             }
         } catch (error) {
             console.error('Error al crear cliente:', error);
-            alert(error.message || 'Ocurrió un error al crear el cliente');
+            mostrarError('Error', error.message || 'Ocurrió un error al crear el cliente');
         } finally {
             setLoading(false);
         }
@@ -581,6 +586,14 @@ export default function CrearClienteScreen() {
                     </View>
                 </ScrollView>
             </LinearGradient>
+            <CustomModal
+                visible={modalVisible}
+                title={modalData.title}
+                message={modalData.message}
+                type={modalData.type}
+                buttonText={modalData.buttonText}
+                onClose={cerrarModal}
+            />
         </View>
     );
 }

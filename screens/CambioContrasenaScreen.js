@@ -12,10 +12,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import CustomModal from '../components/CustomModal';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 
 const CambioContrasenaScreen = () => {
   const router = useRouter();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
   const [contrasenaAnterior, setContrasenaAnterior] = useState('');
   const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [repetirContrasena, setRepetirContrasena] = useState('');
@@ -26,17 +29,17 @@ const CambioContrasenaScreen = () => {
 
   const handleCambiarContrasena = async () => {
     if (!contrasenaAnterior || !nuevaContrasena || !repetirContrasena) {
-      alert('Por favor complete todos los campos');
+      mostrarAdvertencia('Campos requeridos', 'Por favor complete todos los campos');
       return;
     }
 
     if (nuevaContrasena !== repetirContrasena) {
-      alert('Las contraseñas no coinciden');
+      mostrarAdvertencia('Contraseñas no coinciden', 'Las contraseñas no coinciden');
       return;
     }
 
     if (nuevaContrasena.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres');
+      mostrarAdvertencia('Contraseña inválida', 'La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
@@ -53,15 +56,18 @@ const CambioContrasenaScreen = () => {
               contraseniaAnterior: contrasenaAnterior
             });
       if(response){
-        alert('Contraseña cambiada correctamente');
-        router.back();
+        mostrarExito('Contraseña cambiada', 'Contraseña cambiada correctamente');
+        // Esperar un momento antes de navegar para que el usuario vea el mensaje de éxito
+        setTimeout(() => {
+          router.back();
+        }, 1500);
       }
       else {
-        alert('No se pudo cambiar la contraseña. Intente nuevamente.');
+        mostrarError('Error', 'No se pudo cambiar la contraseña. Intente nuevamente.');
       }   
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
-      alert('No se pudo cambiar la contraseña. Intente nuevamente.');
+      mostrarError('Error', 'No se pudo cambiar la contraseña. Intente nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -177,6 +183,14 @@ const CambioContrasenaScreen = () => {
         </TouchableOpacity>
         </View>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </View>
   );
 };

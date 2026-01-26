@@ -15,21 +15,25 @@ function getGUID(imei) {
 }
 
 //LOCAL
-//const BASE_URL = 'http://localhost:5001/api/v1.0';
-//const imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-//const mac = '022b5f75d756b285';
+const BASE_URL = 'http://localhost:5001/api/v1.0';
 
 // APP
-const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
-// Obtener IMEI de forma segura
-let imei = '';
+//const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
+// Obtener MAC (AndroidID) de forma segura
+let mac = '';
 try {
-  imei = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
+  mac = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
 } catch (error) {
   console.warn('Error obteniendo Device ID:', error);
-  imei = '';
+  mac = '';
 }
-const mac = getGUID(imei);
+// IMEI es un GUID calculado a partir de la MAC
+let imei = getGUID(mac);
+
+mac = '022b5f75d756b285';
+imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
+//mac = 'RP1A.200720.011';
+//imei = '000000006CC6CCA5';
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {

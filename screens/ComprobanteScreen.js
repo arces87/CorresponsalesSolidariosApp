@@ -1,14 +1,88 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
+import PrintService from '../services/PrintService';
 import { globalStyles } from '../styles/globalStyles';
 
 export default function ComprobanteScreen() {
   const router = useRouter();
   const { monto, comision, total, referencia, fecha } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalData, setModalData] = useState({
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const mostrarModal = (title, message, type = 'info') => {
+    setModalData({ title, message, type });
+    setModalVisible(true);
+  };
+
+  const cerrarModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleImprimir = async () => {
+    try {
+      setImprimiendo(true);
+      
+      // Verificar Bluetooth
+      try {
+        const bluetoothDisponible = await PrintService.verificarBluetooth();
+        if (!bluetoothDisponible) {
+          mostrarModal(
+            'Bluetooth no disponible',
+            'Por favor, active Bluetooth en su dispositivo para imprimir el comprobante.',
+            'warning'
+          );
+          setImprimiendo(false);
+          return;
+        }
+      } catch (bluetoothError) {
+        mostrarModal(
+          'Bluetooth no disponible',
+          bluetoothError.message || 'Por favor, active Bluetooth en su dispositivo para imprimir el comprobante.',
+          'warning'
+        );
+        setImprimiendo(false);
+        return;
+      }
+
+      // Preparar datos del comprobante
+      const comprobante = {
+        fecha: fecha || new Date().toLocaleString(),
+        referencia: referencia || 'N/A',
+        monto: parseFloat(monto) || 0,
+        comision: parseFloat(comision) || 0,
+        total: parseFloat(total) || 0,
+        tipo: 'Transacción',
+      };
+
+      // Intentar imprimir
+      const exito = await PrintService.imprimirComprobante(comprobante);
+      
+      if (exito) {
+        mostrarModal(
+          'Impresión exitosa',
+          'El comprobante ha sido enviado exitosamente a la impresora ADV7011.',
+          'success'
+        );
+      }
+    } catch (error) {
+      console.error('Error al imprimir:', error);
+      const mensajeError = error.message || 'No se pudo imprimir el comprobante. Por favor, intente nuevamente.';
+      mostrarModal('Error de impresión', mensajeError, 'error');
+    } finally {
+      setImprimiendo(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -82,21 +156,35 @@ export default function ComprobanteScreen() {
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={styles.button}
-              onPress={() => console.log('Imprimir')}
+              style={[styles.button, imprimiendo && styles.buttonDisabled]}
+              onPress={handleImprimir}
+              disabled={imprimiendo}
             >
-              <Text style={styles.buttonText}>IMPRIMIR</Text>
+              {imprimiendo ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>IMPRIMIR</Text>
+              )}
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.button}
               onPress={() => router.replace('/menu')}
+              disabled={imprimiendo}
             >
               <Text style={styles.buttonText}>SALIR</Text>
             </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
+
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        onClose={cerrarModal}
+      />
     </View>
   );
 };
@@ -238,7 +326,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginHorizontal: 5,
     backgroundColor: '#2B4F8C',
-  },  
+    minHeight: 48,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',

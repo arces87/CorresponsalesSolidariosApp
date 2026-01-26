@@ -1,4 +1,15 @@
 pluginManagement {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+    // Permitir protocolos inseguros para librerías que aún usan jcenter con HTTP
+    maven {
+      url 'http://jcenter.bintray.com'
+      allowInsecureProtocol = true
+    }
+  }
+  
   def reactNativeGradlePlugin = new File(
     providers.exec {
       workingDir(rootDir)

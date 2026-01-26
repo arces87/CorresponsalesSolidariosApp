@@ -43,9 +43,13 @@ export default function HojaColectaScreen() {
       if (!userData?.usuario) {
         console.error('No hay datos de usuario disponibles');
         setError('No hay datos de usuario disponibles');
-        // Mostrar datos de prueba aunque no haya usuario
-        setTransacciones(getMockTransacciones());
-        setResumen(getMockResumen());
+        setTransacciones([]);
+        setResumen({
+          totalDepositos: 0,
+          totalRetiros: 0,
+          totalComisiones: 0,
+          saldoCaja: 0
+        });
         setLoading(false);
         return;
       }
@@ -127,95 +131,36 @@ export default function HojaColectaScreen() {
         console.log('Resumen calculado:', apiResumen);
         
       } catch (apiError) {
-        console.error('Error en la API, usando datos de prueba:', apiError);
-        setError('Error de conexión. Mostrando datos de prueba.');
+        console.error('Error en la API:', apiError);
+        setError('Error de conexión. No se pudieron cargar los datos.');
+        apiTransacciones = [];
+        apiResumen = {
+          totalDepositos: 0,
+          totalRetiros: 0,
+          totalComisiones: 0,
+          saldoCaja: 0
+        };
       }
       
-      // Siempre mostrar datos - si la API falló, usar datos de prueba
-      const finalTransacciones = apiTransacciones.length > 0 ? apiTransacciones : getMockTransacciones();
-      const finalResumen = apiTransacciones.length > 0 ? apiResumen : getMockResumen();
-      
-      setTransacciones(finalTransacciones);
-      setResumen(finalResumen);
+      setTransacciones(apiTransacciones);
+      setResumen(apiResumen);
       
     } catch (error) {
       console.error('Error general al cargar transacciones:', error);
-      setError('Error al cargar datos. Mostrando datos de prueba.');
-      
-      // Siempre mostrar datos de prueba en caso de error
-      setTransacciones(getMockTransacciones());
-      setResumen(getMockResumen());
+      setError('Error al cargar datos.');
+      setTransacciones([]);
+      setResumen({
+        totalDepositos: 0,
+        totalRetiros: 0,
+        totalComisiones: 0,
+        saldoCaja: 0
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Función para obtener datos de prueba de transacciones
-  const getMockTransacciones = () => {
-    return [
-      {
-        id: 'mock-1',
-        tipo: 'Depósito',
-        monto: 150.00,
-        valor: 150.00,
-        fecha: new Date().toISOString(),
-        cliente: 'Juan Pérez López',
-        cuenta: '1234567890',
-        identificacionCliente: '1234567890'
-      },
-      {
-        id: 'mock-2',
-        tipo: 'Retiro',
-        monto: 75.50,
-        valor: 75.50,
-        fecha: new Date(Date.now() - 3600000).toISOString(), // Hace 1 hora
-        cliente: 'María García Sánchez',
-        cuenta: '0987654321',
-        identificacionCliente: '0987654321'
-      },
-      {
-        id: 'mock-3',
-        tipo: 'Depósito',
-        monto: 200.00,
-        valor: 200.00,
-        fecha: new Date(Date.now() - 7200000).toISOString(), // Hace 2 horas
-        cliente: 'Carlos Rodríguez Mendoza',
-        cuenta: '1122334455',
-        identificacionCliente: '1122334455'
-      },
-      {
-        id: 'mock-4',
-        tipo: 'Comisión',
-        monto: 2.50,
-        valor: 2.50,
-        fecha: new Date(Date.now() - 10800000).toISOString(), // Hace 3 horas
-        cliente: 'Sistema',
-        cuenta: 'N/A',
-        identificacionCliente: 'N/A'
-      },
-      {
-        id: 'mock-5',
-        tipo: 'Retiro',
-        monto: 100.00,
-        valor: 100.00,
-        fecha: new Date(Date.now() - 14400000).toISOString(), // Hace 4 horas
-        cliente: 'Ana Martínez Torres',
-        cuenta: '5566778899',
-        identificacionCliente: '5566778899'
-      }
-    ];
-  };
-
-  // Función para obtener datos de prueba de resumen
-  const getMockResumen = () => {
-    return {
-      totalDepositos: 350.00,
-      totalRetiros: 175.50,
-      totalComisiones: 2.50,
-      saldoCaja: 1250.75
-    };
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);

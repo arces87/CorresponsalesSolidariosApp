@@ -4,6 +4,11 @@ buildscript {
   repositories {
     google()
     mavenCentral()
+    // Permitir protocolos inseguros para librerías que aún usan jcenter con HTTP
+    maven {
+      url 'http://jcenter.bintray.com'
+      allowInsecureProtocol = true
+    }
   }
   dependencies {
     classpath('com.android.tools.build:gradle:8.8.2')
@@ -30,6 +35,30 @@ allprojects {
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+    
+    // Permitir protocolos inseguros para librerías que aún usan jcenter con HTTP
+    // Nota: jcenter está deprecado, pero algunas librerías aún lo requieren
+    // Se agrega aquí para que todos los subproyectos (incluyendo módulos nativos) puedan usarlo
+    maven {
+      url 'http://jcenter.bintray.com'
+      allowInsecureProtocol = true
+    }
+  }
+}
+
+// Configuración adicional para subproyectos que puedan tener sus propios repositorios
+subprojects {
+  afterEvaluate { project ->
+    if (project.hasProperty('repositories')) {
+      project.repositories.all { repository ->
+        if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository) {
+          if (repository.url.toString().contains('jcenter.bintray.com') && 
+              repository.url.toString().startsWith('http://')) {
+            repository.allowInsecureProtocol = true
+          }
+        }
+      }
+    }
   }
 }
 

@@ -3,8 +3,10 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
+import { useCustomModal } from '../hooks/useCustomModal';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
@@ -13,6 +15,7 @@ export default function DatosTransaccionPrestamoScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData, catalogos, userData, transaccionData } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, cerrarModal } = useCustomModal();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -26,7 +29,7 @@ export default function DatosTransaccionPrestamoScreen() {
 
   const handleContinuar = async () => {
     if (!valorTransaccion) {
-      alert('Por favor ingrese un valor para la transacción');
+      mostrarAdvertencia('Campo requerido', 'Por favor ingrese un valor para la transacción');
       return;
     }
 
@@ -52,7 +55,8 @@ export default function DatosTransaccionPrestamoScreen() {
       });
       console.log('Saldo actual:', saldo);
       if (saldo < Number(valorTransaccion)) {
-        alert('El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
+        mostrarAdvertencia('Fondos insuficientes', 'El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
+        setLoading(false);
         return;
       } 
       const comision = Number(userData?.comisiones?.abonoPrestamos?.administracionCanal) +
@@ -73,7 +77,7 @@ export default function DatosTransaccionPrestamoScreen() {
 
     } catch (error) {
       console.error('Error en handleContinuar:', error);
-      alert(`Error: ${error.message || 'Ocurrió un error al procesar la transacción'}`);
+      mostrarError('Error', error.message || 'Ocurrió un error al procesar la transacción');
     } finally {
       setLoading(false);
     }
@@ -114,12 +118,12 @@ export default function DatosTransaccionPrestamoScreen() {
 
   const handleBuscarCliente = async () => {
     if (!identificacion.trim()) {
-      Alert.alert('Error', 'Por favor ingrese un número de identificación');
+      mostrarError('Error', 'Por favor ingrese un número de identificación');
       return;
     }
 
     if (!tipoId) {
-      Alert.alert('Error', 'Por favor seleccione un tipo de identificación');
+      mostrarError('Error', 'Por favor seleccione un tipo de identificación');
       return;
     }
 
@@ -144,7 +148,7 @@ export default function DatosTransaccionPrestamoScreen() {
     } catch (error) {
       console.error('Error al buscar cliente:', error);
       setError(error.message || 'Error al buscar el cliente');
-      alert('Error', error.message || 'No se pudo encontrar el cliente');
+      mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
     } finally {
       setLoading(false);
     }
@@ -193,7 +197,7 @@ export default function DatosTransaccionPrestamoScreen() {
 
   useEffect(() => {
     if (checkSessionExpired()) {
-      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      mostrarAdvertencia('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
       handleLogout();
     }
   }, []);
@@ -362,6 +366,14 @@ export default function DatosTransaccionPrestamoScreen() {
         </View>
         </ScrollView>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </View>
   );
 }

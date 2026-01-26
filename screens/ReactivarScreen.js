@@ -1,17 +1,20 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 
 export default function ReactivarScreen() {
     const router = useRouter();  
     const { userData } = useContext(AuthContext);
+    const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
     
     const handleActivacion = async () => {
         if (!userData.usuario || !userData.contrasenia) {
-            alert('Por favor ingrese usuario y clave.');
+            mostrarAdvertencia('Campos requeridos', 'Por favor ingrese usuario y clave.');
             return;
         }
         try {
@@ -19,10 +22,13 @@ export default function ReactivarScreen() {
                 usuario: userData.usuario,
                 contrasenia: userData.contrasenia
             });             
-            alert('Solicitud de activación enviada correctamente.');
-            router.replace('/');
+            mostrarExito('Activación enviada', 'Solicitud de activación enviada correctamente.');
+            // Esperar un momento antes de navegar para que el usuario vea el mensaje de éxito
+            setTimeout(() => {
+                router.replace('/');
+            }, 1500);
         } catch (error) {
-            alert('Error en la activación: ' + (error.message || error));
+            mostrarError('Error', 'Error en la activación: ' + (error.message || error));
         }
     };
 
@@ -61,6 +67,14 @@ export default function ReactivarScreen() {
                     </View>
                 </View>
             </LinearGradient>
+            <CustomModal
+                visible={modalVisible}
+                title={modalData.title}
+                message={modalData.message}
+                type={modalData.type}
+                buttonText={modalData.buttonText}
+                onClose={cerrarModal}
+            />
         </View>
     );
 }

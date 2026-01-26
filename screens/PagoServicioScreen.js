@@ -3,9 +3,11 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -13,6 +15,7 @@ export default function PagoServicioScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData, catalogos, userData } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarError, mostrarAdvertencia, mostrarInfo, cerrarModal } = useCustomModal();
   const [numeroContrato, setNumeroContrato] = useState('');
   const [identificacionTitular, setIdentificacionTitular] = useState('');
   const [correoTitular, setCorreoTitular] = useState('');
@@ -38,12 +41,12 @@ export default function PagoServicioScreen() {
 
   const handleContinuar = async () => {
     if (!servicioSeleccionado) {
-      Alert.alert('Error', 'Por favor seleccione un servicio');
+      mostrarError('Error', 'Por favor seleccione un servicio');
       return;
     }
 
     if (!numeroContrato) {
-      Alert.alert('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
       return;
     }
 
@@ -70,7 +73,7 @@ export default function PagoServicioScreen() {
       
       // Si no hay recibo o no se pudo obtener el valor, mostrar error
       if (!valorDelRecibo) {
-        Alert.alert('Error', 'No se pudo obtener el valor del recibo. Por favor, seleccione un recibo válido.');
+        mostrarError('Error', 'No se pudo obtener el valor del recibo. Por favor, seleccione un recibo válido.');
         setLoading(false);
         return;
       }
@@ -118,7 +121,7 @@ export default function PagoServicioScreen() {
       });
     } catch (error) {
       console.error('Error en handleContinuar:', error);
-      Alert.alert('Error', error.message || 'Ocurrió un error al procesar el pago');
+      mostrarError('Error', error.message || 'Ocurrió un error al procesar el pago');
     } finally {
       setLoading(false);
     }
@@ -129,12 +132,12 @@ export default function PagoServicioScreen() {
   // Función para ver detalles del servicio
   const handleVerDetalles = async () => {
     if (!servicioSeleccionado) {
-      Alert.alert('Error', 'Por favor seleccione un servicio');
+      mostrarError('Error', 'Por favor seleccione un servicio');
       return;
     }
 
     if (!numeroContrato) {
-      Alert.alert('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
       return;
     }
 
@@ -154,7 +157,7 @@ export default function PagoServicioScreen() {
       setMostrarModalDetalles(true);      
     } catch (error) {
       console.error('Error al obtener detalles del servicio:', error);
-      Alert.alert('Error', error.message || 'No se pudieron obtener los detalles del servicio');
+      mostrarError('Error', error.message || 'No se pudieron obtener los detalles del servicio');
     } finally {
       setCargandoDetalles(false);
     }
@@ -378,12 +381,12 @@ export default function PagoServicioScreen() {
   // Función para consultar y cargar recibos
   const handleConsultarRecibos = async () => {
     if (!servicioSeleccionado) {
-      Alert.alert('Error', 'Por favor seleccione un servicio');
+      mostrarError('Error', 'Por favor seleccione un servicio');
       return;
     }
 
     if (!numeroContrato) {
-      Alert.alert('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
       return;
     }
 
@@ -477,12 +480,12 @@ export default function PagoServicioScreen() {
         console.log('Recibo seleccionado automáticamente:', reciboId);
       } else {
         console.warn('No se encontraron recibos en la respuesta');
-        Alert.alert('Información', 'No se encontraron recibos para los datos ingresados');
+        mostrarInfo('Información', 'No se encontraron recibos para los datos ingresados');
       }
     } catch (error) {
       console.error('Error al consultar recibos:', error);
       console.error('Detalles del error:', error.message, error.stack);
-      Alert.alert('Error', 'No se pudieron cargar los recibos: ' + (error.message || 'Error desconocido'));
+      mostrarError('Error', 'No se pudieron cargar los recibos: ' + (error.message || 'Error desconocido'));
       setRecibos([]);
       setRecibosConDetalles(new Map());
     } finally {
@@ -502,7 +505,7 @@ export default function PagoServicioScreen() {
   // Función para ver detalles del recibo seleccionado
   const handleVerDetallesRecibo = async () => {
     if (!reciboSeleccionado) {
-      Alert.alert('Error', 'Por favor seleccione un recibo');
+      mostrarError('Error', 'Por favor seleccione un recibo');
       return;
     }
 
@@ -543,7 +546,7 @@ export default function PagoServicioScreen() {
         } else {
           // Si no encontramos el recibo, intentar obtener los detalles del API
           if (!servicioSeleccionado) {
-            Alert.alert('Error', 'No se pudo obtener la información del recibo');
+            mostrarError('Error', 'No se pudo obtener la información del recibo');
             return;
           }
 
@@ -570,7 +573,7 @@ export default function PagoServicioScreen() {
       }
     } catch (error) {
       console.error('Error al obtener detalles del recibo:', error);
-      Alert.alert('Error', error.message || 'No se pudieron obtener los detalles del recibo');
+      mostrarError('Error', error.message || 'No se pudieron obtener los detalles del recibo');
     } finally {
       setCargandoDetalles(false);
     }
@@ -588,7 +591,7 @@ export default function PagoServicioScreen() {
 
   useEffect(() => {
     if (checkSessionExpired()) {
-      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      mostrarAdvertencia('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
       handleLogout();
     }
   }, []);
@@ -835,6 +838,15 @@ export default function PagoServicioScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
 
       {/* Modal para mostrar detalles del servicio */}
       <Modal

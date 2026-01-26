@@ -2,9 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 
 const menuItems = [
   { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/datostransaccion', accion: 'retiro' },
@@ -22,6 +24,7 @@ const menuItems = [
 export default function MenuScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData } = useContext(AuthContext);
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarInfo, cerrarModal } = useCustomModal();
 
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -30,7 +33,8 @@ export default function MenuScreen() {
   const hScale = width / 375;
   const vScale = height / 812;
   const mScale = (size) => Math.round(size * Math.min(1.15, Math.max(0.9, hScale)));
-  const itemMinHeight = Math.max(80, Math.round(height * 0.09));
+  // Altura fija para todos los botones para mantener consistencia
+  const itemHeight = Math.max(100, Math.round(height * 0.12));
   const logoWidth = Math.min(Math.round(width * 0.8), 350);
   const iconSize = Math.round(28 * Math.min(1.2, Math.max(0.9, hScale)));
   const columns = width >= 768 ? 3 : 2;
@@ -57,7 +61,8 @@ export default function MenuScreen() {
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 3,
-        paddingHorizontal: Math.round(12 * responsiveScale),
+        paddingHorizontal: Math.round(8 * responsiveScale),
+        paddingVertical: Math.round(12 * responsiveScale),
       },
       menuIcon: {
         marginBottom: Math.round(6 * responsiveScale),
@@ -67,8 +72,8 @@ export default function MenuScreen() {
         color: '#2B4F8C',
         fontWeight: 'bold',
         textAlign: 'center',
-        fontSize: 14,
-        paddingHorizontal: Math.round(5 * responsiveScale),
+        fontSize: 12,
+        paddingHorizontal: Math.round(4 * responsiveScale),
       },
     };
   };
@@ -86,7 +91,7 @@ export default function MenuScreen() {
 
   useEffect(() => {
     if (checkSessionExpired()) {
-      Alert.alert('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
+      mostrarAdvertencia('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
       handleLogout();
     }
   }, []);
@@ -99,7 +104,7 @@ export default function MenuScreen() {
       if (menuItem.route) {
         router.push(menuItem.route);
       } else {
-        Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
+        mostrarInfo('Próximamente', 'Esta funcionalidad estará disponible próximamente');
       }
     } catch (error) {
       console.error('Error al guardar la acción del menú:', error);
@@ -107,7 +112,7 @@ export default function MenuScreen() {
       if (menuItem.route) {
         router.push(menuItem.route);
       } else {
-        Alert.alert('Próximamente', 'Esta funcionalidad estará disponible próximamente');
+        mostrarInfo('Próximamente', 'Esta funcionalidad estará disponible próximamente');
       }
     }
   };
@@ -137,14 +142,28 @@ export default function MenuScreen() {
               key={idx}
               style={[
                 responsiveStyles.menuButton,
-                { width: percentWidth, minHeight: itemMinHeight, paddingVertical: Math.round(10 * vScale) }
+                { 
+                  width: percentWidth, 
+                  height: itemHeight,
+                  maxHeight: itemHeight,
+                }
               ]}
               onPress={() => handleMenuItemPress(item)}
             >
               {item.icon && (
-                <Image source={item.icon} style={[responsiveStyles.menuIcon, { width: iconSize, height: iconSize }]} />
+                <Image 
+                  source={item.icon} 
+                  style={[responsiveStyles.menuIcon, { width: iconSize, height: iconSize }]} 
+                  resizeMode="contain"
+                />
               )}
-              <Text style={[responsiveStyles.menuLabel, { fontSize: mScale(13) }]} allowFontScaling={false}>
+              <Text 
+                style={[responsiveStyles.menuLabel, { fontSize: mScale(12) }]} 
+                allowFontScaling={false}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
+              >
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -167,6 +186,14 @@ export default function MenuScreen() {
         </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </SafeAreaView>
   );
 }

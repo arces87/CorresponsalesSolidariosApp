@@ -11,7 +11,9 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -20,6 +22,7 @@ const OtpVerificacionScreen = () => {
   const { monto, comision, total, labelTransaccion, otpCliente, otpAgente, accionTransaccion } = useLocalSearchParams();
   const { userData } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
   // Obtener configuración de validación de OTP de la operación
   const validarOtpCliente = otpCliente === 'true' ? true : false;
   const validarOtpAgente = otpAgente === 'true' ? true : false;
@@ -75,20 +78,20 @@ const OtpVerificacionScreen = () => {
             });          
             if (result.otpGenerado) {
               if (result.notificationEmailError) {
-                alert('Error enviando correo: '+ result.notificationEmailErrorMensaje);
+                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
                 console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
-                router.back();
+                setTimeout(() => router.back(), 2000);
               }
               if (result.notificationSMSError) {
-                alert('Error enviando SMS: '+ result.notificationSMSErrorMensaje);
+                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
                 console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
-                router.back();
+                setTimeout(() => router.back(), 2000);
               }
             }
           } catch (error) {
-            alert('Error al solicitar OTP: ' + error.message);
+            mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
             console.error('Error al solicitar OTP:', error.message);
-            router.back();
+            setTimeout(() => router.back(), 2000);
           }
         }      
         if(validarOtpCliente){
@@ -102,20 +105,20 @@ const OtpVerificacionScreen = () => {
             console.log('Result:', result);
             if (result.otpGenerado) {
               if (result.notificationEmailError) {
-                alert('Error enviando correo: '+ result.notificationEmailErrorMensaje);
+                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
                 console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
-                router.back();
+                setTimeout(() => router.back(), 2000);
               }
               if (result.notificationSMSError) {
-                alert('Error enviando SMS: '+ result.notificationSMSErrorMensaje);
+                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
                 console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
-                router.back();
+                setTimeout(() => router.back(), 2000);
               }
             }
           } catch (error) {
-            alert('Error al solicitar OTP:'+ error.message);
+            mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
             console.error('Error al solicitar OTP:', error.message);
-            router.back();
+            setTimeout(() => router.back(), 2000);
           }
         }
       };
@@ -178,18 +181,18 @@ const OtpVerificacionScreen = () => {
             });          
             if (result.otpGenerado) {
               if (result.notificationEmailError) {
-                alert('Error enviando correo: '+ result.notificationEmailErrorMensaje);
+                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
                 console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
                 return;
               }
               if (result.notificationSMSError) {
-                alert('Error enviando SMS: '+ result.notificationSMSErrorMensaje);
+                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
                 console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
                 return;
               }
             }
           } catch (error) {
-            alert('Error al solicitar OTP del agente: ' + error.message);
+            mostrarError('Error', 'Error al solicitar OTP del agente: ' + error.message);
             console.error('Error al solicitar OTP del agente:', error.message);
             return;
           }
@@ -207,18 +210,18 @@ const OtpVerificacionScreen = () => {
             console.log('Result:', result);
             if (result.otpGenerado) {
               if (result.notificationEmailError) {
-                alert('Error enviando correo: '+ result.notificationEmailErrorMensaje);
+                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
                 console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
                 return;
               }
               if (result.notificationSMSError) {
-                alert('Error enviando SMS: '+ result.notificationSMSErrorMensaje);
+                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
                 console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
                 return;
               }
             }
           } catch (error) {
-            alert('Error al solicitar OTP del cliente: ' + error.message);
+            mostrarError('Error', 'Error al solicitar OTP del cliente: ' + error.message);
             console.error('Error al solicitar OTP del cliente:', error.message);
             return;
           }
@@ -226,9 +229,9 @@ const OtpVerificacionScreen = () => {
         
         // Si todo salió bien, reiniciar el countdown
         setCountdown(userData?.tiempootp);
-        alert('Se han enviado nuevos códigos OTP');
+        mostrarExito('OTP reenviado', 'Se han enviado nuevos códigos OTP');
       } catch (error) {
-        alert('Error al reenviar OTP: ' + error.message);
+        mostrarError('Error', 'Error al reenviar OTP: ' + error.message);
         console.error('Error al reenviar OTP:', error);
       }
     }
@@ -240,13 +243,13 @@ const OtpVerificacionScreen = () => {
 
     // Validar código del cliente si está habilitado
     if (validarOtpCliente && otpCode.length !== 6) {
-      alert('Por favor ingrese el código OTP del cliente completo');
+      mostrarAdvertencia('Código incompleto', 'Por favor ingrese el código OTP del cliente completo');
       return;
     }
 
     // Validar código del corresponsal si está habilitado
     if (validarOtpAgente && otpCorresponsalCode.length !== 6) {
-      alert('Por favor ingrese el código OTP del corresponsal completo');
+      mostrarAdvertencia('Código incompleto', 'Por favor ingrese el código OTP del corresponsal completo');
       return;
     }
 
@@ -461,7 +464,7 @@ const OtpVerificacionScreen = () => {
 
     } catch (error) {
       console.error('Error al verificar OTP:', error);
-      alert(error.message || 'Error al verificar el código OTP');
+      mostrarError('Error', error.message || 'Error al verificar el código OTP');
     } finally {
       setIsLoading(false);
     }
@@ -610,6 +613,14 @@ const OtpVerificacionScreen = () => {
           )}
         </View>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </View>
   );
 };

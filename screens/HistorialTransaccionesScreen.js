@@ -3,9 +3,11 @@ import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -13,6 +15,7 @@ export default function HistorialTransaccionesScreen() {
   const router = useRouter();
   const { userData } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, cerrarModal } = useCustomModal();
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
@@ -25,12 +28,12 @@ export default function HistorialTransaccionesScreen() {
 
   const cargarTransacciones = async () => {
     if (!fechaInicio || !fechaFin) {
-      alert('Por favor seleccione ambas fechas');
+      mostrarAdvertencia('Fechas requeridas', 'Por favor seleccione ambas fechas');
       return [];
     }
 
     if (fechaInicio > fechaFin) {
-      alert('La fecha de inicio no puede ser mayor a la fecha fin');
+      mostrarAdvertencia('Fechas inválidas', 'La fecha de inicio no puede ser mayor a la fecha fin');
       return [];
     }
 
@@ -48,7 +51,7 @@ export default function HistorialTransaccionesScreen() {
       return resultado.transacciones || [];
     } catch (error) {
       console.error('Error al consultar historial:', error);
-      Alert.alert('Error', error.message || 'No se pudo obtener el historial. Por favor intente nuevamente.');
+      mostrarError('Error', error.message || 'No se pudo obtener el historial. Por favor intente nuevamente.');
       return [];
     } finally {
       setLoading(false);
@@ -283,6 +286,14 @@ export default function HistorialTransaccionesScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </SafeAreaView>
   );
 }

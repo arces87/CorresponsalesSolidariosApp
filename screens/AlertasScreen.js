@@ -4,7 +4,9 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 
 const AlertasScreen = () => {
@@ -15,6 +17,7 @@ const AlertasScreen = () => {
   const [descripcion, setDescripcion] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
   
   // Cargar tipos de alerta cuando cambien los catálogos
   useEffect(() => {
@@ -31,12 +34,12 @@ const AlertasScreen = () => {
 
   const handleRegistrar = async () => {
     if (!tipo || !descripcion.trim()) {
-      alert('Campos requeridos. Seleccione tipo de alerta y escriba una descripción.');
+      mostrarAdvertencia('Campos requeridos', 'Seleccione tipo de alerta y escriba una descripción.');
       return;
     }
     
     if (!userData?.usuario) {
-      alert('No se pudo obtener la información del usuario. Por favor, inicie sesión nuevamente.');
+      mostrarError('Error de sesión', 'No se pudo obtener la información del usuario. Por favor, inicie sesión nuevamente.');
       return;
     }   
 
@@ -49,17 +52,17 @@ const AlertasScreen = () => {
       });
       
       if(resultado){
-        alert('La alerta ha sido registrada correctamente');
+        mostrarExito('Alerta registrada', 'La alerta ha sido registrada correctamente');
+        setTipo(catalogos?.tiposAlertas?.[0]?.id || '');
+        setDescripcion('');
       }
       else{
-        alert('No se pudo registrar la alerta.');
+        mostrarError('Error', 'No se pudo registrar la alerta.');
       }
     } catch (error) {
-      alert(error.message || error);
+      mostrarError('Error', error.message || error);
     } finally {
       setLoading(false);
-      setTipo(catalogos?.tiposAlertas?.[0]?.id || '');
-      setDescripcion('');
     }
   };
 
@@ -136,6 +139,14 @@ const AlertasScreen = () => {
           <Text style={styles.buttonText}>{loading ? 'Registrando...' : 'REGISTRAR'}</Text>
         </TouchableOpacity>
       </View>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </LinearGradient>
   );
 };

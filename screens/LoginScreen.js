@@ -5,7 +5,9 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 
 export default function LoginScreen() {
@@ -18,6 +20,7 @@ export default function LoginScreen() {
   const { setUserData, setCatalogos } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [nombreEmpresa, setNombreEmpresa] = useState('');
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, cerrarModal } = useCustomModal();
 
   // Función para guardar el token en AsyncStorage
   const saveAuthToken = async (token) => {
@@ -46,7 +49,7 @@ export default function LoginScreen() {
       setPassError(false);
     }
     if (hasError) {
-      alert('Por favor ingrese usuario y clave.');
+      mostrarAdvertencia('Campos requeridos', 'Por favor ingrese usuario y clave.');
       return;
     }
     setUserData({
@@ -67,7 +70,7 @@ export default function LoginScreen() {
     setPassError(hasPassError);
     
     if (hasUserError || hasPassError) {
-      alert('Por favor ingrese usuario y clave.');
+      mostrarAdvertencia('Campos requeridos', 'Por favor ingrese usuario y clave.');
       return;
     }
 
@@ -128,30 +131,32 @@ export default function LoginScreen() {
         console.log('userData', userData);  
         router.push('/menu');
     } catch (error) {
-      alert(error.message || error);
+      mostrarError('Error de autenticación', error.message || error);
     }finally {      
       setLoading(false);
     }
   };
 
   const showDeviceInfo = async () => {
-    let imei = '';
     let mac = '';
+    let imei = '';
     try {
-      imei = await getDeviceId();
-      if (!imei) {
-        alert('No se pudo obtener un identificador de dispositivo en este entorno.');
+      mac = await getDeviceId();
+      if (!mac) {
+        mostrarAdvertencia('Device ID', 'No se pudo obtener un identificador de dispositivo en este entorno.');
         return;
       }
-      mac = getGUID(imei);
+      imei = getGUID(mac);
+      mostrarInfo(
+        'Device ID',
+        `MAC (AndroidID): ${mac}\n\nIMEI (GUID): ${imei}`
+      );
     } catch (error) {
-      alert('Error al obtener el Device ID: ' + (error.message || error));
-      return '';
+      mostrarError('Error', 'Error al obtener el Device ID: ' + (error.message || error));
     }
-    alert('DEVICE_ID: ' + imei + '\nGUID: ' + mac);
   };
 
-  // Función para obtener el Device ID
+  // Función para obtener el MAC (AndroidID)
   const getDeviceId = async () => {
     try {
       return Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
@@ -161,12 +166,12 @@ export default function LoginScreen() {
     }
   };
 
-  // Función para generar un GUID tipo hash hexa padded igual que en ApiService
-  function getGUID(imei) {
+  // Función para generar un IMEI (GUID) tipo hash hexa padded a partir de la MAC, igual que en ApiService
+  function getGUID(mac) {
     let hash = 0;
-    if (!imei) return '';
-    for (let i = 0; i < imei.length; i++) {
-      hash = ((hash << 5) - hash) + imei.charCodeAt(i);
+    if (!mac) return '';
+    for (let i = 0; i < mac.length; i++) {
+      hash = ((hash << 5) - hash) + mac.charCodeAt(i);
       hash |= 0;
     }
     return Math.abs(hash).toString(16).padStart(16, '0');
@@ -273,6 +278,14 @@ export default function LoginScreen() {
           </View>
         </View>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </SafeAreaView>
   );
 }

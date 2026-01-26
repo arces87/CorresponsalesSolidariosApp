@@ -3,9 +3,11 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -13,6 +15,7 @@ export default function DatosTransaccionScreen() {
   const router = useRouter();
   const { checkSessionExpired, setUserData, catalogos, userData, transaccionData } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, cerrarModal } = useCustomModal();
   const [tipoId, setTipoId] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [cliente, setCliente] = useState(null);
@@ -26,7 +29,7 @@ export default function DatosTransaccionScreen() {
 
   const handleContinuar = async () => {
     if (!valorTransaccion) {
-      alert('Por favor ingrese un valor para la transacción');
+      mostrarAdvertencia('Campo requerido', 'Por favor ingrese un valor para la transacción');
       return;
     }
 
@@ -48,10 +51,11 @@ export default function DatosTransaccionScreen() {
 
       if (menuAccion === 'retiro') {
         console.log('Retiro');
-        /* const disponible = cuentatransaccion.disponibleParaTransaccion?.toFixed(2);
+        const disponible = cuentatransaccion.disponibleParaTransaccion?.toFixed(2);
                 
         if (Number(valorTransaccion) > Number(disponible)) {
-          alert('El valor a retirar es mayor al disponible en la cuenta del cliente');
+          mostrarAdvertencia('Fondos insuficientes', 'El valor a retirar es mayor al disponible en la cuenta del cliente');
+          setLoading(false);
           return;
         }
         
@@ -63,13 +67,15 @@ export default function DatosTransaccionScreen() {
         if (typeof response === 'object' && response !== null) {
           console.log('Tipos de transacciones:', response);
           if(response.saldoCaja < Number(valorTransaccion)) {
-            alert('El saldo en caja es menor al valor de la transacción.');
+            mostrarAdvertencia('Saldo insuficiente', 'El saldo en caja es menor al valor de la transacción.');
+            setLoading(false);
             return;
           }
         } else {          
-          alert('Error al obtener el saldo en caja. Por favor intente nuevamente.');
+          mostrarError('Error', 'Error al obtener el saldo en caja. Por favor intente nuevamente.');
+          setLoading(false);
           return;
-        } */
+        } 
         const comision = Number(userData?.comisiones?.retiro?.administracionCanal) +
           Number(userData?.comisiones?.retiro?.agente) +
           Number(userData?.comisiones?.retiro?.cooperativa);
@@ -95,7 +101,8 @@ export default function DatosTransaccionScreen() {
         });
         console.log('Saldo actual:', saldo);
         if (saldo < Number(valorTransaccion)) {
-          alert('El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
+          mostrarAdvertencia('Fondos insuficientes', 'El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
+          setLoading(false);
           return;
         } */
         const comision = Number(userData?.comisiones?.deposito?.administracionCanal) +
@@ -117,7 +124,7 @@ export default function DatosTransaccionScreen() {
 
     } catch (error) {
       console.error('Error en handleContinuar:', error);
-      alert(`Error: ${error.message || 'Ocurrió un error al procesar la transacción'}`);
+      mostrarError('Error', error.message || 'Ocurrió un error al procesar la transacción');
     } finally {
       setLoading(false);
     }
@@ -158,12 +165,12 @@ export default function DatosTransaccionScreen() {
 
   const handleBuscarCliente = async () => {
     if (!identificacion.trim()) {
-      Alert.alert('Error', 'Por favor ingrese un número de identificación');
+      mostrarError('Error', 'Por favor ingrese un número de identificación');
       return;
     }
 
     if (!tipoId) {
-      Alert.alert('Error', 'Por favor seleccione un tipo de identificación');
+      mostrarError('Error', 'Por favor seleccione un tipo de identificación');
       return;
     }
 
@@ -190,7 +197,7 @@ export default function DatosTransaccionScreen() {
     } catch (error) {
       console.error('Error al buscar cliente:', error);
       setError(error.message || 'Error al buscar el cliente');
-      alert('Error', error.message || 'No se pudo encontrar el cliente');
+      mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
     } finally {
       setLoading(false);
     }
@@ -243,7 +250,7 @@ export default function DatosTransaccionScreen() {
 
   useEffect(() => {
     if (checkSessionExpired()) {
-      alert('Por seguridad, tu sesión ha finalizado.');
+      mostrarAdvertencia('Sesión expirada', 'Por seguridad, tu sesión ha finalizado.');
       handleLogout();
     }
   }, []);
@@ -406,6 +413,14 @@ export default function DatosTransaccionScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      <CustomModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        buttonText={modalData.buttonText}
+        onClose={cerrarModal}
+      />
     </SafeAreaView>
   );
 }
