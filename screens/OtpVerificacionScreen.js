@@ -464,7 +464,7 @@ const OtpVerificacionScreen = () => {
 
     } catch (error) {
       console.error('Error al verificar OTP:', error);
-      mostrarError('Error', error.message || 'Error al verificar el código OTP');
+      mostrarError('Operación falló', error.message || 'Error al verificar el código OTP');
     } finally {
       setIsLoading(false);
     }
@@ -490,6 +490,12 @@ const OtpVerificacionScreen = () => {
             <View style={globalStyles.headerTitleContainer}>
               <Text style={globalStyles.headerTitle}>VERIFICACIÓN TRANSACCIÓN</Text>
             </View>
+            <TouchableOpacity
+              style={globalStyles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={globalStyles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -509,12 +515,15 @@ const OtpVerificacionScreen = () => {
               Identificacion: {userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || 'N/A'}
             </Text>
             <Text style={styles.transactionType}>
-              Valor: ${parseFloat(monto).toFixed(2)}
+              Cuenta: {userData?.numerocuentacliente || userData?.codigoprestamo}
             </Text>
             <Text style={styles.transactionType}>
-              Comisión: ${parseFloat(comision).toFixed(2)}
+              Valor: S/{parseFloat(monto).toFixed(2)}
             </Text>
-            <Text style={styles.amount}>Total: ${parseFloat(total).toFixed(2)}</Text>
+            <Text style={styles.transactionType}>
+              Comisión: S/{parseFloat(comision).toFixed(2)}
+            </Text>
+            <Text style={styles.amount}>Total: S/{parseFloat(total).toFixed(2)}</Text>
           </View>
 
           {validarOtpCliente && (

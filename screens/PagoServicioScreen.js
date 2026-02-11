@@ -615,6 +615,12 @@ export default function PagoServicioScreen() {
             <View style={globalStyles.headerTitleContainer}>
               <Text style={globalStyles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
+            <TouchableOpacity
+              style={globalStyles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={globalStyles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -790,7 +796,7 @@ export default function PagoServicioScreen() {
                             {monto && (
                               <View style={styles.reciboInfoRow}>
                                 <Text style={styles.reciboInfoLabel}>Monto:</Text>
-                                <Text style={styles.reciboInfoValue}>${parseFloat(monto).toFixed(2)}</Text>
+                                <Text style={styles.reciboInfoValue}>S/{parseFloat(monto).toFixed(2)}</Text>
                       </View>
                     )}
                             {fechaVencimiento && (

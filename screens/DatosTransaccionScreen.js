@@ -274,6 +274,12 @@ export default function DatosTransaccionScreen() {
             <View style={globalStyles.headerTitleContainer}>
               <Text style={globalStyles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
+            <TouchableOpacity
+              style={globalStyles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={globalStyles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -373,13 +379,13 @@ export default function DatosTransaccionScreen() {
                     {cuentaSeleccionada && cuentas.length > 0 && (
                       <View style={styles.accountDetails}>
                         <Text style={styles.accountDetailText}>
-                          Saldo disponible: ${cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
+                          Saldo disponible: S/{cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
                         </Text>
 
                         <View style={styles.inputContainer}>
                           <Text style={styles.label}>Valor de la transacción</Text>
                           <View style={styles.currencyInputContainer}>
-                            <Text style={styles.currencySymbol}>$</Text>
+                            <Text style={styles.currencySymbol}>S/</Text>
                             <TextInput
                               style={styles.currencyInput}
                               keyboardType="numeric"

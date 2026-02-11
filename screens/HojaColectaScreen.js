@@ -204,6 +204,12 @@ export default function HojaColectaScreen() {
               <View style={styles.headerTitleContainer}>
                 <Text style={styles.headerTitle}>HOJA DE COLECTA</Text>
               </View>
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={() => router.push('/menu')}
+              >
+                <Text style={styles.menuIcon}>☰</Text>
+              </TouchableOpacity>
             </View>
           </View>
           <View style={styles.errorContainer}>
@@ -235,6 +241,12 @@ export default function HojaColectaScreen() {
               <View style={styles.headerTitleContainer}>
                 <Text style={styles.headerTitle}>HOJA DE COLECTA</Text>
               </View>
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={() => router.push('/menu')}
+              >
+                <Text style={styles.menuIcon}>☰</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -283,7 +295,7 @@ export default function HojaColectaScreen() {
                   <View style={styles.summaryItem}>
                     <Text style={[styles.summaryLabel, {fontWeight: 'bold'}]}>Saldo Caja</Text>
                     <Text style={[styles.summaryValue, styles.balanceAmount]}>
-                      $ {(resumen?.saldoCaja || 0)}
+                      S/ {(resumen?.saldoCaja || 0)}
                     </Text>
                   </View>   
 
@@ -291,7 +303,7 @@ export default function HojaColectaScreen() {
 
                   <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Depósitos</Text>
-                    <Text style={[styles.summaryValue, styles.positiveAmount]}>$ {(resumen?.totalDepositos || 0)}</Text>
+                    <Text style={[styles.summaryValue, styles.positiveAmount]}>S/ {(resumen?.totalDepositos || 0)}</Text>
                   </View>
 
 
@@ -301,14 +313,14 @@ export default function HojaColectaScreen() {
 
                   <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Comisiones</Text>
-                    <Text style={[styles.summaryValue, styles.commissionAmount]}>$ {(resumen?.totalComisiones || 0)}</Text>
+                    <Text style={[styles.summaryValue, styles.commissionAmount]}>S/ {(resumen?.totalComisiones || 0)}</Text>
                   </View>  
 
                   <View style={styles.summaryDivider} />    
 
                   <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Retiros</Text>
-                    <Text style={[styles.summaryValue, styles.negativeAmount]}>$ {(resumen?.totalRetiros || 0)}</Text>
+                    <Text style={[styles.summaryValue, styles.negativeAmount]}>S/ {(resumen?.totalRetiros || 0)}</Text>
                   </View>
                 </View>
 
@@ -316,14 +328,14 @@ export default function HojaColectaScreen() {
 
                   <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Pago a Terceros</Text>
-                    <Text style={[styles.summaryValue, styles.positiveAmount]}>$ {(resumen?.totalComisiones || 0)}</Text>
+                    <Text style={[styles.summaryValue, styles.positiveAmount]}>S/ {(resumen?.totalComisiones || 0)}</Text>
                   </View>  
 
                   <View style={styles.summaryDivider} />    
 
                   <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Abono a préstamos</Text>
-                    <Text style={[styles.summaryValue, styles.positiveAmount]}>$ {(resumen?.totalRetiros || 0)}</Text>
+                    <Text style={[styles.summaryValue, styles.positiveAmount]}>S/ {(resumen?.totalRetiros || 0)}</Text>
                   </View>
                 </View>
               </View>
@@ -345,7 +357,7 @@ export default function HojaColectaScreen() {
                           styles.transactionAmount,
                           { color: transaccion.tipo === 'Depósito' ? '#2BAC6B' : '#E74C3C' }
                         ]}>
-                          {transaccion.tipo === 'Depósito' ? '+' : '-'} ${transaccion.monto}
+                          {transaccion.tipo === 'Depósito' ? '+' : '-'} S/ {transaccion.monto}
                         </Text>
                       </View>
                       <View style={styles.transactionDetails}>
@@ -410,6 +422,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -20, // Compensar el ancho del botón de retroceso
+    marginRight: -20, // Compensar el ancho del botón de menú
+  },
+  menuButton: {
+    zIndex: 1,
+    padding: 10,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIcon: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   headerTitle: {
     color: '#fff',

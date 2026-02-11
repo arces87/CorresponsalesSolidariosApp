@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
@@ -72,9 +72,16 @@ const HistorialAlertasScreen = () => {
       >
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
           <View style={styles.headerContent}>
+            <View style={{ width: 50 }} />
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>HISTORIAL DE ALERTAS</Text>
             </View>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={styles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -135,6 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -20, // Compensar el ancho del botón de retroceso
+    marginRight: -20, // Compensar el ancho del botón de menú
   },
   backButton: {
     zIndex: 1,
@@ -223,6 +231,18 @@ const styles = StyleSheet.create({
     color: '#2B4F8C',
     fontSize: 16,
     textAlign: 'center',
+  },
+  menuButton: {
+    zIndex: 1,
+    padding: 10,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIcon: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });
 

@@ -148,6 +148,12 @@ export default function HistorialTransaccionesScreen() {
                 <View style={globalStyles.headerTitleContainer}>
                   <Text style={globalStyles.headerTitle}>HISTORIAL</Text>
                 </View>
+                <TouchableOpacity
+                  style={globalStyles.menuButton}
+                  onPress={() => router.push('/menu')}
+                >
+                  <Text style={globalStyles.menuIcon}>☰</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -260,7 +266,7 @@ export default function HistorialTransaccionesScreen() {
                     <View style={styles.transaccionHeader}>
                       <Text style={styles.transaccionTipo}>{transaccion.tipo || 'Sin tipo'}</Text>
                       <Text style={styles.transaccionMonto}>
-                        ${transaccion.valor ? transaccion.valor.toFixed(2) : '0.00'}
+                        S/{transaccion.valor ? transaccion.valor.toFixed(2) : '0.00'}
                       </Text>
                     </View>
                     <Text style={styles.transaccionFecha}>

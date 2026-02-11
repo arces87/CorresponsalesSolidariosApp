@@ -95,9 +95,16 @@ export default function ComprobanteScreen() {
         <View style={styles.headerWrapper}>
           <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
             <View style={globalStyles.headerContent}>
+              <View style={{ width: 50 }} />
               <View style={globalStyles.headerTitleContainer}>
                 <Text style={globalStyles.headerTitle}>COMPROBANTE TRANSACCION</Text>
               </View>
+              <TouchableOpacity
+                style={globalStyles.menuButton}
+                onPress={() => router.push('/menu')}
+              >
+                <Text style={globalStyles.menuIcon}>☰</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -134,19 +141,19 @@ export default function ComprobanteScreen() {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Monto</Text>
-              <Text style={[styles.detailValue, styles.amountColumn]}>${parseFloat(monto).toFixed(2)}</Text>
+              <Text style={[styles.detailValue, styles.amountColumn]}>S/{parseFloat(monto).toFixed(2)}</Text>
             </View>
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Comisión</Text>
-              <Text style={[styles.detailValue, styles.amountColumn]}>${parseFloat(comision).toFixed(2)}</Text>
+              <Text style={[styles.detailValue, styles.amountColumn]}>S/{parseFloat(comision).toFixed(2)}</Text>
             </View>
 
             <View style={styles.tableDivider} />
 
             <View style={[styles.tableRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={[styles.totalValue, styles.amountColumn]}>${parseFloat(total).toFixed(2)}</Text>
+              <Text style={[styles.totalValue, styles.amountColumn]}>S/{parseFloat(total).toFixed(2)}</Text>
             </View>
           </View>
 

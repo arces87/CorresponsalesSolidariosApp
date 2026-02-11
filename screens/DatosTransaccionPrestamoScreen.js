@@ -6,8 +6,8 @@ import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
-import { useCustomModal } from '../hooks/useCustomModal';
 import { AuthContext } from '../context/AuthContext';
+import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
 
@@ -26,10 +26,22 @@ export default function DatosTransaccionPrestamoScreen() {
   const [valorTransaccion, setValorTransaccion] = useState('');
   const [menuLabel, setMenuLabel] = useState('');
   const [menuAccion, setMenuAccion] = useState('');
+  const [valorMaximo, setValorMaximo] = useState(0);
 
   const handleContinuar = async () => {
     if (!valorTransaccion) {
       mostrarAdvertencia('Campo requerido', 'Por favor ingrese un valor para la transacción');
+      return;
+    }
+
+    const valorNumerico = parseFloat(valorTransaccion);
+    if (isNaN(valorNumerico) || valorNumerico <= 0) {
+      mostrarAdvertencia('Valor inválido', 'El valor debe ser mayor a cero');
+      return;
+    }
+
+    if (valorNumerico > valorMaximo) {
+      mostrarAdvertencia('Valor excedido', `El valor no puede ser mayor a S/ ${valorMaximo.toFixed(2)}`);
       return;
     }
 
@@ -115,6 +127,22 @@ export default function DatosTransaccionPrestamoScreen() {
       console.log('No se encontraron tipos de identificación en los catálogos');
     }
   }, [catalogos]);
+
+  // Establecer valorParaEstarAlDia cuando se selecciona un préstamo
+  useEffect(() => {
+    if (prestamoSeleccionado && prestamos.length > 0) {
+      const prestamoSeleccionadoObj = prestamos.find(p => String(p.secuencial) === prestamoSeleccionado);
+      if (prestamoSeleccionadoObj && prestamoSeleccionadoObj.valorParaEstarAlDia) {
+        const valorInicial = prestamoSeleccionadoObj.valorParaEstarAlDia.toFixed(2);
+        setValorTransaccion(valorInicial);
+        setValorMaximo(prestamoSeleccionadoObj.valorParaEstarAlDia);
+      }
+    } else {
+      // Si no hay préstamo seleccionado, limpiar el valor
+      setValorTransaccion('');
+      setValorMaximo(0);
+    }
+  }, [prestamoSeleccionado, prestamos]);
 
   const handleBuscarCliente = async () => {
     if (!identificacion.trim()) {
@@ -221,6 +249,12 @@ export default function DatosTransaccionPrestamoScreen() {
             <View style={globalStyles.headerTitleContainer}>
               <Text style={globalStyles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
+            <TouchableOpacity
+              style={globalStyles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={globalStyles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <ScrollView 
@@ -327,13 +361,16 @@ export default function DatosTransaccionPrestamoScreen() {
                 {prestamoSeleccionado && prestamos.length > 0 && (
                   <View style={styles.accountDetails}>
                     <Text style={styles.accountDetailText}>
-                      Saldo: ${prestamos.find(c => String(c.secuencial) === prestamoSeleccionado)?.saldo?.toFixed(2) || '0.00'}
+                      Saldo capital: S/{prestamos.find(c => String(c.secuencial) === prestamoSeleccionado)?.saldo?.toFixed(2) || '0.00'}                      
+                    </Text>
+                    <Text style={styles.accountDetailText}>                      
+                      Cuota a cancelar: S/ {prestamos.find(c => String(c.secuencial) === prestamoSeleccionado)?.valorParaEstarAlDia?.toFixed(2) || '0.00'}
                     </Text>
 
                     <View style={styles.inputContainer}>
                       <Text style={styles.label}>Valor de la transacción</Text>
                       <View style={styles.currencyInputContainer}>
-                        <Text style={styles.currencySymbol}>$</Text>
+                        <Text style={styles.currencySymbol}>S/</Text>
                         <TextInput
                           style={styles.currencyInput}
                           keyboardType="numeric"
@@ -343,8 +380,28 @@ export default function DatosTransaccionPrestamoScreen() {
                           onChangeText={(text) => {
                             // Allow only numbers and one decimal point
                             const regex = /^\d*\.?\d{0,2}$/;
-                            if (text === '' || regex.test(text)) {
-                              setValorTransaccion(text);
+                            if (regex.test(text)) {
+                              if (text === '') {
+                                setValorTransaccion('');
+                                return;
+                              }
+                              
+                              const valorNumerico = parseFloat(text);
+                              
+                              // Validar que el valor sea mayor a cero
+                              if (valorNumerico <= 0) {
+                                // No permitir valores menores o iguales a cero
+                                return;
+                              }
+                              
+                              // Validar que el valor no sea mayor al máximo
+                              if (valorNumerico > valorMaximo) {
+                                // Si es mayor al máximo, establecer el máximo
+                                setValorTransaccion(valorMaximo.toFixed(2));
+                              } else {
+                                // Valor válido, permitir el cambio
+                                setValorTransaccion(text);
+                              }
                             }
                           }}
                         />

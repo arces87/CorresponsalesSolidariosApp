@@ -131,6 +131,7 @@ export const globalStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -20, // Compensar el ancho del botón de retroceso
+    marginRight: -20, // Compensar el ancho del botón de menú
   },
   backButton: {
     zIndex: 1,
@@ -142,6 +143,18 @@ export const globalStyles = StyleSheet.create({
   backArrow: {
     color: colors.white,
     fontSize: 35,
+    fontWeight: 'bold',
+  },
+  menuButton: {
+    zIndex: 1,
+    padding: 10,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIcon: {
+    color: colors.white,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   headerTitle: {

@@ -247,6 +247,12 @@ export default function ObligacionesScreen() {
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>{'DATOS ' + menuLabel}</Text>
             </View>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => router.push('/menu')}
+            >
+              <Text style={styles.menuIcon}>☰</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <ScrollView 
@@ -358,7 +364,7 @@ export default function ObligacionesScreen() {
                           </Text>                          
                           <Text style={styles.tableCellText}>
                             <Text style={styles.tableCellLabel}>Valor: </Text>
-                            ${obligacion.saldo.toFixed(2)}
+                              S/{obligacion.saldo.toFixed(2)}
                           </Text>
                         </View>
                         <View style={styles.tableColumnSelect}>
@@ -384,12 +390,12 @@ export default function ObligacionesScreen() {
                        const obligacion = obligaciones.find(o => String(o.secuencial) === secuencial);
                        return obligacion ? (
                          <Text key={secuencial} style={styles.selectedObligacionText}>
-                           {obligacion.tipo} - ${obligacion.saldo.toFixed(2)}
+                           {obligacion.tipo} - S/{obligacion.saldo.toFixed(2)}
                          </Text>
                        ) : null;
                      })}
                      <Text style={styles.totalText}>
-                       Total a pagar: ${obligacionesSeleccionadas.reduce((total, secuencial) => {
+                       Total a pagar: S/{obligacionesSeleccionadas.reduce((total, secuencial) => {
                          const obligacion = obligaciones.find(o => String(o.secuencial) === secuencial);
                          return total + (obligacion ? obligacion.saldo : 0);
                        }, 0).toFixed(2)}
@@ -463,6 +469,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -20,
+    marginRight: -20,
+  },
+  menuButton: {
+    zIndex: 1,
+    padding: 10,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIcon: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   backButton: {
     zIndex: 1,

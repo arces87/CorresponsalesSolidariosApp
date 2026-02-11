@@ -196,6 +196,12 @@ export default function CrearCuentaScreen() {
               <View style={globalStyles.headerTitleContainer}>
                 <Text style={globalStyles.headerTitle}>CREAR CUENTA</Text>
               </View>
+              <TouchableOpacity
+                style={globalStyles.menuButton}
+                onPress={() => router.push('/menu')}
+              >
+                <Text style={globalStyles.menuIcon}>☰</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

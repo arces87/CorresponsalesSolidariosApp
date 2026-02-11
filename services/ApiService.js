@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Device from 'expo-device';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
@@ -15,12 +14,14 @@ function getGUID(imei) {
 }
 
 //LOCAL
-const BASE_URL = 'http://localhost:5001/api/v1.0';
+//const BASE_URL = 'http://localhost:5001/api/v1.0';
 
 // APP
-//const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
+const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
 // Obtener MAC (AndroidID) de forma segura
+
 let mac = '';
+/*
 try {
   mac = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
 } catch (error) {
@@ -29,11 +30,11 @@ try {
 }
 // IMEI es un GUID calculado a partir de la MAC
 let imei = getGUID(mac);
-
-mac = '022b5f75d756b285';
-imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-//mac = 'RP1A.200720.011';
-//imei = '000000006CC6CCA5';
+*/
+//mac = '022b5f75d756b285';
+//imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
+mac = 'RP1A.200720.011';
+imei = '000000006CC6CCA5';
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -173,7 +174,7 @@ class ApiService {
           throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.');
         }
         if (fetchError.message && fetchError.message.includes('Network request failed')) {
-          throw new Error('No se pudo conectar al servidor. Verifique su conexión a internet y que el servidor esté disponible en http://190.116.29.99:9001');
+          throw new Error('No se pudo conectar al servidor. Verifique su conexión a internet y que el servidor esté disponible.');
         }
         throw fetchError;
       }
@@ -1233,6 +1234,8 @@ class ApiService {
    *   @property {number} saldo - Saldo actual del préstamo
    *   @property {string} [adjudicado] - Fecha de adjudicación
    *   @property {string} [estado] - Estado actual del préstamo
+   *   @property {number} valorParaEstarAlDia - Cuota a abonar para estar al día
+   *   @property {number} valorCancelarHastaCuotaCurso - Valor de siguiente cuota del siguiente mes
    */
   static async listarPrestamos({
     identificacion = null,
@@ -1322,6 +1325,33 @@ class ApiService {
 
   /**
    * Crea un nuevo cliente en el sistema
+   * @param {Object} params - Datos del cliente a crear
+   * @param {number} [params.secuencialTipoIdentificacion] - ID del tipo de identificación
+   * @param {string} [params.identificacion] - Número de identificación
+   * @param {string} [params.nombres] - Nombres del cliente
+   * @param {string} [params.apellidoPaterno] - Apellido paterno
+   * @param {string} [params.apellidoMaterno] - Apellido materno
+   * @param {boolean} [params.esMasculino] - true para masculino, false para femenino
+   * @param {string} [params.fechaNacimiento] - Fecha de nacimiento (formato ISO 8601 o Date)
+   * @param {string} [params.telefonoDomicilio] - Teléfono fijo
+   * @param {string} [params.telefonoCelular] - Número de celular
+   * @param {string} [params.direccionDomiciliaria] - Dirección de domicilio
+   * @param {string} [params.referenciaDomiciliaria] - Referencia de domicilio
+   * @param {string} [params.codigoPais] - Código de país (ej: 'EC')
+   * @param {string} [params.codigoEstadoCivil] - Código de estado civil
+   * @param {string} [params.codigoDactilar] - Código dactilar
+   * @param {string} [params.mail] - Correo electrónico
+   * @param {string} [params.usuario] - Usuario que crea el registro
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Respuesta con el resultado de la creación
+   *   @property {number} secuencialCuenta - ID de la cuenta creada
+   *   @property {number} secuencialCliente - ID del cliente creado
+   *   @property {number} secuencialPersona - ID de la persona creada
+   *   @property {number} valorParaApertura - Valor requerido para apertura de cuenta
+   *   @property {boolean} requiereAperturaCuenta - Indica si se requiere apertura de cuenta
    */
   static async crearCliente(params = {}) {
     const url = `${BASE_URL}/Cliente/crearCliente`;
@@ -1335,14 +1365,36 @@ class ApiService {
       const token = await this.getAuthToken();
       const location = await LocationService.getLocation();
       
+      // Formatear fechaNacimiento si está presente
+      let fechaNacimientoFormatted = null;
+      if (params.fechaNacimiento) {
+        if (params.fechaNacimiento instanceof Date) {
+          fechaNacimientoFormatted = params.fechaNacimiento.toISOString();
+        } else if (typeof params.fechaNacimiento === 'string') {
+          // Si ya es string, verificar si es ISO o necesita conversión
+          try {
+            const date = new Date(params.fechaNacimiento);
+            if (!isNaN(date.getTime())) {
+              fechaNacimientoFormatted = date.toISOString();
+            } else {
+              fechaNacimientoFormatted = params.fechaNacimiento;
+            }
+          } catch (e) {
+            fechaNacimientoFormatted = params.fechaNacimiento;
+          }
+        } else {
+          fechaNacimientoFormatted = params.fechaNacimiento;
+        }
+      }
+      
       const requestData = {
-        secuencialTipoIdentificacion: params.secuencialTipoIdentificacion || null,
+        secuencialTipoIdentificacion: params.secuencialTipoIdentificacion !== undefined ? params.secuencialTipoIdentificacion : null,
         identificacion: params.identificacion || null,
         nombres: params.nombres || null,
         apellidoPaterno: params.apellidoPaterno || null,
         apellidoMaterno: params.apellidoMaterno || null,
         esMasculino: params.esMasculino !== undefined ? params.esMasculino : null,
-        fechaNacimiento: params.fechaNacimiento ? new Date(params.fechaNacimiento).toISOString() : null,
+        fechaNacimiento: fechaNacimientoFormatted,
         telefonoDomicilio: params.telefonoDomicilio || null,
         telefonoCelular: params.telefonoCelular || null,
         direccionDomiciliaria: params.direccionDomiciliaria || null,
@@ -1352,10 +1404,10 @@ class ApiService {
         codigoDactilar: params.codigoDactilar || null,
         mail: params.mail || null,
         usuario: params.usuario || null,
-        imei: imei,
-        mac: mac,
-        latitud: location.latitud,
-        longitud: location.longitud
+        imei: params.imei || imei || null,
+        latitud: params.latitud !== undefined ? params.latitud : location.latitud,
+        longitud: params.longitud !== undefined ? params.longitud : location.longitud,
+        mac: params.mac || mac || null
       };
 
       console.log('Solicitando creación de cliente:', url);
@@ -1380,14 +1432,24 @@ class ApiService {
         } catch (e) {
           errorMessage = responseText || errorMessage;
         }
+        console.error('Error en la respuesta:', errorMessage);
         throw new Error(errorMessage);
       }
 
-      // La API devuelve un booleano como texto plano o JSON
+      // La API devuelve un objeto CreaClienteResponse
       try {
-        return JSON.parse(responseText);
+        const result = responseText ? JSON.parse(responseText) : {};
+        return {
+          secuencialCuenta: result.secuencialCuenta || null,
+          secuencialCliente: result.secuencialCliente || null,
+          secuencialPersona: result.secuencialPersona || null,
+          valorParaApertura: result.valorParaApertura || 0,
+          requiereAperturaCuenta: result.requiereAperturaCuenta || false,
+          ...result // Incluir cualquier otro campo que pueda venir
+        };
       } catch (e) {
-        return responseText === 'true';
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Formato de respuesta inválido');
       }
     } catch (error) {
       console.error('Error en crearCliente:', error);
@@ -2630,6 +2692,89 @@ class ApiService {
       return responseText ? JSON.parse(responseText) : {};
     } catch (error) {
       console.error('Error en devuelveNombreEmpresa:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Apertura una nueva cuenta para un cliente
+   * @param {Object} params - Parámetros para la apertura de cuenta
+   * @param {number} params.secuencialCuentaSocio - ID de la cuenta del socio
+   * @param {number} params.secuencialCuentaCorresponsal - ID de la cuenta del corresponsal
+   * @param {number} params.secuencialCliente - ID del cliente
+   * @param {number} params.valorApertura - Valor de apertura de la cuenta
+   * @param {string} [params.usuario] - Usuario que realiza la operación
+   * @param {string} [params.imei] - IMEI del dispositivo (opcional)
+   * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
+   * @param {number} [params.longitud] - Longitud de la ubicación (opcional)
+   * @param {string} [params.mac] - Dirección MAC del dispositivo (opcional)
+   * @returns {Promise<Object>} - Respuesta con el resultado de la apertura
+   *   @property {string} [documento] - Número de documento generado
+   *   @property {boolean} cuentaAperturada - Indica si la cuenta se abrió correctamente
+   */
+  static async aperturaCuenta({
+    secuencialCuentaSocio,
+    secuencialCuentaCorresponsal,
+    secuencialCliente,
+    valorApertura,
+    usuario,
+    imei: customImei,
+    latitud: customLatitud,
+    longitud: customLongitud,
+    mac: customMac
+  }) {
+    const url = `${BASE_URL}/Cuenta/aperturaCuenta`;
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      // Obtener ubicación actual
+      const location = await LocationService.getLocation();
+      
+      const body = {
+        secuencialCuentaSocio: secuencialCuentaSocio || null,
+        secuencialCuentaCorresponsal: secuencialCuentaCorresponsal || null,
+        secuencialCliente: secuencialCliente || null,
+        valorApertura: parseFloat(valorApertura),
+        usuario: usuario || null,
+        imei: customImei || imei,
+        latitud: customLatitud !== undefined ? customLatitud : location.latitud,
+        longitud: customLongitud !== undefined ? customLongitud : location.longitud,
+        mac: customMac || mac
+      };
+
+      console.log('Solicitando apertura de cuenta a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+      
+      const token = await this.getAuthToken();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `Error al abrir la cuenta (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.title || errorMessage;
+        } catch (e) {
+          errorMessage = responseText || errorMessage;
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      console.error('Error en aperturaCuenta:', error);
       throw error;
     }
   }

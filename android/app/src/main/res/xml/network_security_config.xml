@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Permitir HTTP para la IP del servidor -->
+    <!-- Configuración base: permitir HTTP en general para todas las conexiones -->
+    <!-- Esto permite conexiones HTTP a cualquier servidor, incluyendo IPs con puertos -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <!-- Permitir HTTP para la IP del servidor específica (sin puerto, Android lo maneja automáticamente) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">190.116.29.99</domain>
     </domain-config>
@@ -10,11 +18,4 @@
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
-    <!-- Configuración base: permitir HTTP en general para todas las conexiones -->
-    <base-config cleartextTrafficPermitted="true">
-        <trust-anchors>
-            <certificates src="system" />
-            <certificates src="user" />
-        </trust-anchors>
-    </base-config>
 </network-security-config>

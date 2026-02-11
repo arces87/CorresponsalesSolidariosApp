@@ -249,14 +249,55 @@ export default function CrearClienteScreen() {
 
             const response = await ApiService.crearCliente(clienteData);
 
-            if (response.success) {
-                mostrarExito('Cliente creado', 'Cliente creado correctamente');
-                // Esperar un momento antes de navegar para que el usuario vea el mensaje de éxito
+            // Verificar si la creación fue exitosa
+            if (!response.secuencialCliente) {
+                throw new Error('No se pudo crear el cliente correctamente');
+            }
+
+            // Proceder con la apertura de cuenta
+            try {
+                const valorApertura = 30;
+                const aperturaResponse = await ApiService.aperturaCuenta({
+                    secuencialCuentaSocio: response.secuencialCuenta || null,
+                    secuencialCuentaCorresponsal: 0,
+                    secuencialCliente: response.secuencialCliente,
+                    valorApertura: valorApertura,
+                    usuario: userData?.usuario
+                });
+
+                // Verificar si la apertura fue exitosa
+                if (!aperturaResponse.cuentaAperturada) {
+                    throw new Error('No se pudo aperturar la cuenta correctamente');
+                }
+
+                // Navegar a la pantalla de comprobante
+                const fechaActual = new Date().toLocaleString('es-EC', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                router.replace({
+                    pathname: '/comprobante',
+                    params: {
+                        monto: valorApertura.toString(),
+                        comision: '0',
+                        total: valorApertura.toString(),
+                        referencia: aperturaResponse.documento || 'N/A',
+                        fecha: fechaActual
+                    }
+                });
+            } catch (aperturaError) {
+                console.error('Error al aperturar cuenta:', aperturaError);
+                // Mostrar error pero mantener el cliente creado
+                mostrarError('Error', aperturaError.message || 'El cliente se creó correctamente, pero hubo un error al aperturar la cuenta');
+                // Esperar un momento antes de navegar de vuelta
                 setTimeout(() => {
                     router.back();
-                }, 1500);
-            } else {
-                throw new Error(response.message || 'Error al crear el cliente');
+                }, 2000);
             }
         } catch (error) {
             console.error('Error al crear cliente:', error);
@@ -287,6 +328,12 @@ export default function CrearClienteScreen() {
                                 <View style={globalStyles.headerTitleContainer}>
                                     <Text style={globalStyles.headerTitle}>CREAR CLIENTE</Text>
                                 </View>
+                                <TouchableOpacity
+                                  style={globalStyles.menuButton}
+                                  onPress={() => router.push('/menu')}
+                                >
+                                  <Text style={globalStyles.menuIcon}>☰</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
