@@ -44,16 +44,59 @@ allprojects {
       allowInsecureProtocol = true
     }
   }
+  
+  // Configurar buildscript repositories para todos los subproyectos
+  // Usar beforeEvaluate para que se ejecute antes de que se evalúe el buildscript
+  beforeEvaluate { project ->
+    if (project.hasProperty('buildscript')) {
+      project.buildscript.repositories.all { repository ->
+        if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository) {
+          def urlString = repository.url.toString()
+          if (urlString.contains('jcenter.bintray.com') && urlString.startsWith('http://')) {
+            repository.allowInsecureProtocol = true
+          }
+        }
+      }
+    }
+  }
+  
+  afterEvaluate { project ->
+    if (project.hasProperty('buildscript')) {
+      project.buildscript.repositories.all { repository ->
+        if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository) {
+          def urlString = repository.url.toString()
+          if (urlString.contains('jcenter.bintray.com') && urlString.startsWith('http://')) {
+            repository.allowInsecureProtocol = true
+          }
+        }
+      }
+    }
+  }
 }
 
 // Configuración adicional para subproyectos que puedan tener sus propios repositorios
 subprojects {
+  // Configurar buildscript repositories antes de que se evalúen
+  beforeEvaluate { project ->
+    if (project.hasProperty('buildscript')) {
+      project.buildscript.repositories.all { repository ->
+        if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository) {
+          def urlString = repository.url.toString()
+          if (urlString.contains('jcenter.bintray.com') && urlString.startsWith('http://')) {
+            repository.allowInsecureProtocol = true
+          }
+        }
+      }
+    }
+  }
+  
+  // Configurar repositories normales para todos los subproyectos
   afterEvaluate { project ->
     if (project.hasProperty('repositories')) {
       project.repositories.all { repository ->
         if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository) {
-          if (repository.url.toString().contains('jcenter.bintray.com') && 
-              repository.url.toString().startsWith('http://')) {
+          def urlString = repository.url.toString()
+          if (urlString.contains('jcenter.bintray.com') && urlString.startsWith('http://')) {
             repository.allowInsecureProtocol = true
           }
         }

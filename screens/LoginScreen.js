@@ -9,6 +9,7 @@ import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
 import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
+import PrintService from '../services/PrintService';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -19,8 +20,9 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setUserData, setCatalogos } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [probandoImpresion, setProbandoImpresion] = useState(false);
   const [nombreEmpresa, setNombreEmpresa] = useState('');
-  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, cerrarModal } = useCustomModal();
+  const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
 
   // Función para guardar el token en AsyncStorage
   const saveAuthToken = async (token) => {
@@ -177,6 +179,152 @@ export default function LoginScreen() {
     return Math.abs(hash).toString(16).padStart(16, '0');
   }
 
+  // Función para probar la conexión e impresión
+  const handleProbarImpresion = async () => {
+    // Verificar si está en web
+    if (Platform.OS === 'web') {
+      mostrarAdvertencia(
+        'Impresión no disponible en Web',
+        'La impresión Bluetooth solo está disponible en dispositivos Android.\n\n' +
+        'Para probar la funcionalidad de impresión:\n' +
+        '1. Ejecute la aplicación en un dispositivo Android\n' +
+        '2. O use: npx expo run:android\n\n' +
+        'La impresión requiere acceso a APIs nativas de Bluetooth que no están disponibles en navegadores web.'
+      );
+      return;
+    }
+
+    setProbandoImpresion(true);
+    try {
+      // Paso 1: Verificar Bluetooth
+      mostrarInfo('Probando impresión', 'Verificando disponibilidad de Bluetooth...');
+      
+      try {
+        const bluetoothDisponible = await PrintService.verificarBluetooth();
+        if (!bluetoothDisponible) {
+          mostrarAdvertencia(
+            'Bluetooth no disponible',
+            'No se pudo verificar la disponibilidad de Bluetooth.\n\n' +
+            'Por favor, verifique que Bluetooth esté activado y que la aplicación tenga los permisos necesarios.'
+          );
+          setProbandoImpresion(false);
+          return;
+        }
+      } catch (bluetoothError) {
+        // Capturar y mostrar el error específico
+        console.error('Error al verificar Bluetooth:', bluetoothError);
+        mostrarError(
+          'Error al verificar Bluetooth',
+          bluetoothError.message || 'Ocurrió un error al verificar Bluetooth. Por favor, intente nuevamente.'
+        );
+        setProbandoImpresion(false);
+        return;
+      }
+
+      // Paso 2: Buscar dispositivos
+      mostrarInfo('Probando impresión', 'Buscando impresoras Bluetooth disponibles...');
+      
+      const dispositivos = await PrintService.buscarDispositivosBluetooth();
+      
+      if (dispositivos.length === 0) {
+        mostrarAdvertencia(
+          'No se encontraron impresoras',
+          'No se encontraron dispositivos Bluetooth disponibles.\n\n' +
+          'Por favor:\n' +
+          '1. Active Bluetooth en su dispositivo\n' +
+          '2. Asegúrese de que la impresora ADV7011 esté encendida\n' +
+          '3. Empareje la impresora con su dispositivo\n' +
+          '4. Intente nuevamente'
+        );
+        setProbandoImpresion(false);
+        return;
+      }
+
+      // Mostrar lista de dispositivos encontrados
+      const listaDispositivos = dispositivos.map((d, i) => 
+        `${i + 1}. ${d.name || 'Sin nombre'} (${d.address || d.id || 'ID desconocido'})`
+      ).join('\n');
+
+      mostrarInfo(
+        'Dispositivos encontrados',
+        `Se encontraron ${dispositivos.length} dispositivo(s):\n\n${listaDispositivos}\n\n` +
+        'Intentando conectar a la primera impresora...'
+      );
+
+      // Paso 3: Conectar a la primera impresora (preferir ADV)
+      let impresoraSeleccionada = dispositivos.find(d => 
+        (d.name || '').toUpperCase().includes('ADV')
+      ) || dispositivos[0];
+
+      mostrarInfo(
+        'Probando impresión',
+        `Conectando a: ${impresoraSeleccionada.name || 'Impresora seleccionada'}...`
+      );
+
+      await PrintService.conectarImpresora(
+        impresoraSeleccionada.address || impresoraSeleccionada.id
+      );
+
+      // Paso 4: Imprimir comprobante de prueba
+      mostrarInfo('Probando impresión', 'Enviando comprobante de prueba a la impresora...');
+
+      const fechaActual = new Date().toLocaleString('es-EC', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      const comprobantePrueba = {
+        fecha: fechaActual,
+        referencia: 'PRUEBA-' + Date.now(),
+        monto: 100.00,
+        comision: 5.00,
+        total: 105.00,
+        tipo: 'Prueba de Impresión',
+        cliente: 'Cliente de Prueba'
+      };
+
+      const exito = await PrintService.imprimirComprobante(comprobantePrueba);
+
+      if (exito) {
+        mostrarExito(
+          'Prueba exitosa',
+          `La impresión se realizó correctamente.\n\n` +
+          `Impresora: ${impresoraSeleccionada.name || 'Desconocida'}\n` +
+          `Comprobante: ${comprobantePrueba.referencia}\n\n` +
+          `Si el comprobante se imprimió correctamente, la conexión y la impresión están funcionando.`
+        );
+      } else {
+        throw new Error('La impresión no se completó correctamente');
+      }
+
+      // Desconectar después de la prueba
+      await PrintService.desconectarImpresora();
+    } catch (error) {
+      console.error('Error al probar impresión:', error);
+      mostrarError(
+        'Error en la prueba',
+        error.message || 'Ocurrió un error al probar la conexión e impresión.\n\n' +
+        'Por favor, verifique:\n' +
+        '1. Que Bluetooth esté activado\n' +
+        '2. Que la impresora esté encendida y emparejada\n' +
+        '3. Que la impresora esté cerca del dispositivo'
+      );
+      
+      // Intentar desconectar en caso de error
+      try {
+        await PrintService.desconectarImpresora();
+      } catch (disconnectError) {
+        console.error('Error al desconectar:', disconnectError);
+      }
+    } finally {
+      setProbandoImpresion(false);
+    }
+  };
+
   // Obtener nombre de la empresa al iniciar
   useEffect(() => {
     const obtenerNombreEmpresa = async () => {
@@ -262,6 +410,15 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomButton} onPress={showDeviceInfo}>
             <Text style={styles.bottomText} allowFontScaling={false}>DEVICE ID</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.bottomButton, probandoImpresion && { opacity: 0.5 }]} 
+            onPress={handleProbarImpresion}
+            disabled={probandoImpresion}
+          >
+            <Text style={styles.bottomText} allowFontScaling={false}>
+              {probandoImpresion ? 'PROBANDO...' : 'PROBAR IMPRESIÓN'}
+            </Text>
           </TouchableOpacity>
         </View>
             </View>
@@ -382,16 +539,23 @@ const styles = StyleSheet.create({
   },
   bottomOptions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
     marginTop: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    flexWrap: 'wrap',
+  },
+  bottomButton: {
+    minWidth: 100,
+    alignItems: 'center',
+    paddingVertical: 5,
   },
   bottomText: {
     color: '#2B4F8C',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 12,
     textDecorationLine: 'underline',
+    textAlign: 'center',
   },
   bottomInfoContainer: {
     position: 'absolute',

@@ -130,6 +130,12 @@ android {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
     
+    // Configurar el manifest merger para resolver conflictos entre AndroidX y support library
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+    
     // Asegurar que los recursos XML se incluyan
     sourceSets {
         main {
@@ -161,6 +167,19 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    
+    // Excluir support library de todas las dependencias para evitar conflictos con AndroidX
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+        }
+    }
+    
+    // Excluir support library de todas las configuraciones
+    configurations.all {
+        exclude group: 'com.android.support'
+    }
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
