@@ -84,21 +84,16 @@ export default function CrearClienteScreen() {
     };
     
     const validateIdentification = (id) => {
-        // Validar que sea numérico y tenga 8 dígitos para cédula ecuatoriana
-        return /^[0-9]{8}$/.test(id);
+        // Validar que sea numérico (sin restricción de longitud)
+        return /^[0-9]+$/.test(id);
     };
 
-    // Cargar tipos de identificación
+    // Cargar tipos de identificación - siempre usar el primero (DOCUMENTO NACIONAL DE IDENTIDAD)
     useEffect(() => {
         if (!loadingCatalogos && catalogos?.tiposIdentificaciones?.length > 0) {
             const firstTipoId = String(catalogos.tiposIdentificaciones[0].secuencial);
-            setTipoIdentificacion(prev => {
-                // Solo establecer si no hay un valor ya seleccionado o si el valor actual no existe en las opciones
-                if (!prev || !catalogos.tiposIdentificaciones.some(t => String(t.secuencial) === prev)) {
-                    return firstTipoId;
-                }
-                return prev;
-            });
+            // Forzar siempre el primer tipo de identificación
+            setTipoIdentificacion(firstTipoId);
         } else if (!loadingCatalogos && (!catalogos?.tiposIdentificaciones || catalogos.tiposIdentificaciones.length === 0)) {
             setTipoIdentificacion('');
         }
@@ -148,7 +143,7 @@ export default function CrearClienteScreen() {
         if (!identificacion) {
             errors.push('Número de identificación es requerido');
         } else if (!validateIdentification(identificacion)) {
-            errors.push('El número de identificación no es válido (debe tener 8 dígitos)');
+            errors.push('El número de identificación debe contener solo números');
         }
         
         // Validar nombres y apellidos
@@ -247,26 +242,28 @@ export default function CrearClienteScreen() {
                 usuario: userData?.usuario
             };
 
+            // Intentar crear el cliente
             const response = await ApiService.crearCliente(clienteData);
 
             // Verificar si la creación fue exitosa
-            if (!response.secuencialCliente) {
+            if (!response || !response.secuencialCliente) {
                 throw new Error('No se pudo crear el cliente correctamente');
             }
 
-            // Proceder con la apertura de cuenta
-            try {
-                const valorApertura = 30;
+            // Solo proceder con la apertura de cuenta si el cliente se creó exitosamente
+            try {  
                 const aperturaResponse = await ApiService.aperturaCuenta({
                     secuencialCuentaSocio: response.secuencialCuenta || null,
-                    secuencialCuentaCorresponsal: 0,
+                    secuencialCuentaCorresponsal: 1,
                     secuencialCliente: response.secuencialCliente,
-                    valorApertura: valorApertura,
+                    valorApertura: response.valorParaApertura,
+                    nombreCliente: nombres + ' ' + apellidopaterno + ' ' + apellidomaterno,
+                    identificacionCliente: identificacion,
                     usuario: userData?.usuario
                 });
 
                 // Verificar si la apertura fue exitosa
-                if (!aperturaResponse.cuentaAperturada) {
+                if (!aperturaResponse || !aperturaResponse.cuentaAperturada) {
                     throw new Error('No se pudo aperturar la cuenta correctamente');
                 }
 
@@ -283,9 +280,9 @@ export default function CrearClienteScreen() {
                 router.replace({
                     pathname: '/comprobante',
                     params: {
-                        monto: valorApertura.toString(),
+                        monto: response.valorParaApertura.toString(),
                         comision: '0',
-                        total: valorApertura.toString(),
+                        total: response.valorParaApertura.toString(),
                         referencia: aperturaResponse.documento || 'N/A',
                         fecha: fechaActual
                     }
@@ -301,6 +298,7 @@ export default function CrearClienteScreen() {
             }
         } catch (error) {
             console.error('Error al crear cliente:', error);
+            // Si falla la creación del cliente, no se intenta abrir la cuenta
             mostrarError('Error', error.message || 'Ocurrió un error al crear el cliente');
         } finally {
             setLoading(false);
@@ -326,7 +324,7 @@ export default function CrearClienteScreen() {
                                     <Text style={globalStyles.backArrow}>‹</Text>
                                 </TouchableOpacity>
                                 <View style={globalStyles.headerTitleContainer}>
-                                    <Text style={globalStyles.headerTitle}>CREAR CLIENTE</Text>
+                                    <Text style={globalStyles.headerTitle}>CREAR SOCIO</Text>
                                 </View>
                                 <TouchableOpacity
                                   style={globalStyles.menuButton}
@@ -353,19 +351,19 @@ export default function CrearClienteScreen() {
                                     <Picker
                                         selectedValue={tipoIdentificacion}
                                         onValueChange={(itemValue) => {
-                                            setTipoIdentificacion(itemValue);
+                                            // No permitir cambios - siempre usar el primero
                                         }}
                                         style={styles.picker}
                                         dropdownIconColor="#2B4F8C"
-                                        enabled={!loadingCatalogos && catalogos?.tiposIdentificaciones?.length > 0}
+                                        enabled={false}
                                     >
-                                        {catalogos?.tiposIdentificaciones?.map((tipo) => (
+                                        {catalogos?.tiposIdentificaciones?.length > 0 && (
                                             <Picker.Item 
-                                                key={tipo.secuencial} 
-                                                label={tipo.nombre} 
-                                                value={String(tipo.secuencial)} 
+                                                key={catalogos.tiposIdentificaciones[0].secuencial} 
+                                                label={catalogos.tiposIdentificaciones[0].nombre} 
+                                                value={String(catalogos.tiposIdentificaciones[0].secuencial)} 
                                             />
-                                        ))}
+                                        )}
                                     </Picker>
                                 )}
                             </View>

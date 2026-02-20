@@ -400,7 +400,7 @@ export default function DatosTransaccionPrestamoScreen() {
                                 setValorTransaccion(valorMaximo.toFixed(2));
                               } else {
                                 // Valor válido, permitir el cambio
-                                setValorTransaccion(text);
+                              setValorTransaccion(text);
                               }
                             }
                           }}

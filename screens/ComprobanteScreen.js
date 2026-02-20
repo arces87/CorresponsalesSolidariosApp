@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
 import PrintService from '../services/PrintService';
@@ -19,6 +19,9 @@ export default function ComprobanteScreen() {
     message: '',
     type: 'info',
   });
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [dispositivosDisponibles, setDispositivosDisponibles] = useState([]);
+  const [comprobanteParaImprimir, setComprobanteParaImprimir] = useState(null);
 
   const mostrarModal = (title, message, type = 'info') => {
     setModalData({ title, message, type });
@@ -29,7 +32,7 @@ export default function ComprobanteScreen() {
     setModalVisible(false);
   };
 
-  const handleImprimir = async () => {
+  const handleImprimir = async (deviceIdSeleccionado = null) => {
     try {
       setImprimiendo(true);
       
@@ -63,6 +66,7 @@ export default function ComprobanteScreen() {
         comision: parseFloat(comision) || 0,
         total: parseFloat(total) || 0,
         tipo: 'Transacción',
+        deviceId: deviceIdSeleccionado, // Incluir deviceId si se proporciona
       };
 
       // Intentar imprimir
@@ -71,17 +75,41 @@ export default function ComprobanteScreen() {
       if (exito) {
         mostrarModal(
           'Impresión exitosa',
-          'El comprobante ha sido enviado exitosamente a la impresora ADV7011.',
+          'El comprobante ha sido enviado exitosamente a la impresora.',
           'success'
         );
+        setSelectorVisible(false);
       }
     } catch (error) {
       console.error('Error al imprimir:', error);
+      
+      // Si hay múltiples dispositivos, mostrar selector
+      if (error.codigo === 'MULTIPLES_DISPOSITIVOS' && error.dispositivos) {
+        setDispositivosDisponibles(error.dispositivos);
+        setComprobanteParaImprimir({
+          fecha: fecha || new Date().toLocaleString(),
+          referencia: referencia || 'N/A',
+          monto: parseFloat(monto) || 0,
+          comision: parseFloat(comision) || 0,
+          total: parseFloat(total) || 0,
+          tipo: 'Transacción',
+        });
+        setSelectorVisible(true);
+        setImprimiendo(false);
+        return;
+      }
+      
       const mensajeError = error.message || 'No se pudo imprimir el comprobante. Por favor, intente nuevamente.';
       mostrarModal('Error de impresión', mensajeError, 'error');
     } finally {
       setImprimiendo(false);
     }
+  };
+
+  const handleSeleccionarDispositivo = (dispositivo) => {
+    setSelectorVisible(false);
+    const deviceId = dispositivo.address || dispositivo.id;
+    handleImprimir(deviceId);
   };
 
   return (
@@ -92,37 +120,19 @@ export default function ComprobanteScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
-        <View style={styles.headerWrapper}>
-          <View style={[globalStyles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-            <View style={globalStyles.headerContent}>
-              <View style={{ width: 50 }} />
-              <View style={globalStyles.headerTitleContainer}>
-                <Text style={globalStyles.headerTitle}>COMPROBANTE TRANSACCION</Text>
-              </View>
-              <TouchableOpacity
-                style={globalStyles.menuButton}
-                onPress={() => router.push('/menu')}
-              >
-                <Text style={globalStyles.menuIcon}>☰</Text>
-              </TouchableOpacity>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+          <Image
+            source={require('../assets/logo-horizontal-blanco.png')}
+            style={styles.logoHorizontal}
+            resizeMode="contain"
+          />
+          <View style={styles.statusContainer}>
+            <View style={styles.statusIcon}>
+              <MaterialIcons name="check" size={20} color="white" />
             </View>
+            <Text style={styles.transactionStatus}>Transacción Exitosa</Text>
           </View>
         </View>
-        <View style={styles.header}>
-            
-              <Image
-                source={require('../assets/logo-horizontal-blanco.png')}
-                style={styles.logoHorizontal}
-                resizeMode="contain"
-              />
-                       
-            <View style={styles.statusContainer}>
-              <View style={styles.statusIcon}>
-                <MaterialIcons name="check" size={20} color="white" />
-              </View>
-              <Text style={styles.transactionStatus}>Transacción Exitosa</Text>
-            </View>
-          </View>
         <View style={globalStyles.card}>
           <View style={styles.tableContainer}>
             <View style={styles.tableHeader}>
@@ -192,6 +202,58 @@ export default function ComprobanteScreen() {
         type={modalData.type}
         onClose={cerrarModal}
       />
+
+      {/* Modal de selección de dispositivos */}
+      <Modal
+        visible={selectorVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectorVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <LinearGradient
+              colors={['#2B4F8C', '#2BAC6B']}
+              style={styles.modalGradient}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Seleccionar Impresora</Text>
+                <Text style={styles.modalSubtitle}>
+                  Se encontraron {dispositivosDisponibles.length} dispositivo(s) disponible(s)
+                </Text>
+              </View>
+
+              <FlatList
+                data={dispositivosDisponibles}
+                keyExtractor={(item, index) => item.address || item.id || `device-${index}`}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.deviceItem}
+                    onPress={() => handleSeleccionarDispositivo(item)}
+                  >
+                    <MaterialIcons name="bluetooth" size={24} color="#2B4F8C" />
+                    <View style={styles.deviceInfo}>
+                      <Text style={styles.deviceName}>{item.name || 'Dispositivo sin nombre'}</Text>
+                      <Text style={styles.deviceAddress}>{item.address || item.id || 'ID desconocido'}</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={24} color="#666" />
+                  </TouchableOpacity>
+                )}
+                style={styles.deviceList}
+              />
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setSelectorVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -207,12 +269,12 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
+    paddingTop: 20,
   },
-  headerWrapper: {
-    width: '92%',
-    alignSelf: 'center',
-    paddingTop: 40,
-    paddingBottom: 0
+  header: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
   },
   logoHorizontal: {
     width: width * 0.8,
@@ -342,5 +404,85 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: width * 0.9,
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalGradient: {
+    padding: 20,
+  },
+  modalHeader: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  deviceList: {
+    maxHeight: 300,
+    marginBottom: 20,
+  },
+  deviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  deviceInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  deviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  deviceAddress: {
+    fontSize: 12,
+    color: '#666',
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });

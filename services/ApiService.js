@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Device from 'expo-device';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
 // Función para generar un GUID tipo hash hexa padded
-function getGUID(imei) {
+function getGUID(mac) {
   let hash = 0;
-  if (!imei) return '';
-  for (let i = 0; i < imei.length; i++) {
-    hash = ((hash << 5) - hash) + imei.charCodeAt(i);
+  if (!mac) return '';
+  for (let i = 0; i < mac.length; i++) {
+    hash = ((hash << 5) - hash) + mac.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash).toString(16).padStart(16, '0');
@@ -21,7 +22,7 @@ const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
 // Obtener MAC (AndroidID) de forma segura
 
 let mac = '';
-/*
+
 try {
   mac = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
 } catch (error) {
@@ -30,11 +31,11 @@ try {
 }
 // IMEI es un GUID calculado a partir de la MAC
 let imei = getGUID(mac);
-*/
+
 //mac = '022b5f75d756b285';
 //imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-mac = 'RP1A.200720.011';
-imei = '000000006CC6CCA5';
+//mac = 'RP1A.200720.011';
+//imei = '000000006CC6CCA5';
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -2703,6 +2704,8 @@ class ApiService {
    * @param {number} params.secuencialCuentaCorresponsal - ID de la cuenta del corresponsal
    * @param {number} params.secuencialCliente - ID del cliente
    * @param {number} params.valorApertura - Valor de apertura de la cuenta
+   * @param {string} [params.nombreCliente] - Nombre del cliente
+   * @param {string} [params.identificacionCliente] - Identificación del cliente
    * @param {string} [params.usuario] - Usuario que realiza la operación
    * @param {string} [params.imei] - IMEI del dispositivo (opcional)
    * @param {number} [params.latitud] - Latitud de la ubicación (opcional)
@@ -2717,6 +2720,8 @@ class ApiService {
     secuencialCuentaCorresponsal,
     secuencialCliente,
     valorApertura,
+    nombreCliente,
+    identificacionCliente,
     usuario,
     imei: customImei,
     latitud: customLatitud,
@@ -2738,6 +2743,8 @@ class ApiService {
         secuencialCuentaCorresponsal: secuencialCuentaCorresponsal || null,
         secuencialCliente: secuencialCliente || null,
         valorApertura: parseFloat(valorApertura),
+        nombreCliente: nombreCliente || null,
+        identificacionCliente: identificacionCliente || null,
         usuario: usuario || null,
         imei: customImei || imei,
         latitud: customLatitud !== undefined ? customLatitud : location.latitud,
