@@ -4,6 +4,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -405,7 +406,7 @@ const OtpVerificacionScreen = () => {
         if (reciboData) {
           const reciboObj = {
             id: userData?.referencia,
-            numero: reciboData.numero,
+            numero: String(reciboData.numero ?? '').trim(),
             fechaVencimiento: reciboData.fechaVencimiento
           }; 
           
@@ -458,7 +459,15 @@ const OtpVerificacionScreen = () => {
           monto: respuestaServicio.monto,
           comision: comision,
           total: total,
-          referencia: respuestaServicio.numeroTransaccion
+          referencia: respuestaServicio.numeroTransaccion,
+          labelTransaccion: labelTransaccion || '',
+          nombreSocio: userData?.nombrecliente || '',
+          numeroCuenta: respuestaServicio.numeroCuenta || userData?.numerocuentacliente || '',
+          codigoOperacion: respuestaServicio.numeroTransaccion || '',
+          observacion: userData?.observacionDeposito || '',
+          usuario: userData?.usuario || '',
+          negocio: userData?.nombreMostrar || '',
+          identificacionCliente: userData?.identificacioncliente || ''
         }
       });
 
@@ -499,6 +508,12 @@ const OtpVerificacionScreen = () => {
           </View>
         </View>
 
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(24, insets.bottom + 24) }]}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.card}>
           <Text style={styles.instruction}>
             Si se solicita código de verificación para completar la operación, por favor consulte su teléfono y/o correo electrónico e ingrese el código recibido. 
@@ -517,6 +532,11 @@ const OtpVerificacionScreen = () => {
             <Text style={styles.transactionType}>
               Cuenta: {userData?.numerocuentacliente || userData?.codigoprestamo}
             </Text>
+            {userData?.tipoRegistroFirma != null && userData?.tipoRegistroFirma !== '' && (
+              <Text style={styles.transactionType}>
+                Cuenta registro: {userData?.tipoRegistroFirma}
+              </Text>
+            )}
             <Text style={styles.transactionType}>
               Valor: S/{parseFloat(monto).toFixed(2)}
             </Text>
@@ -621,6 +641,7 @@ const OtpVerificacionScreen = () => {
           </View>
           )}
         </View>
+        </ScrollView>
       </LinearGradient>
       <CustomModal
         visible={modalVisible}
@@ -643,6 +664,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-start',
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    paddingBottom: 24,
   },
   headerWrapper: {
     width: '92%',

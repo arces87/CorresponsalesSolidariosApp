@@ -624,7 +624,7 @@ export default function PagoServicioScreen() {
           </View>
         </View>
         <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]} keyboardShouldPersistTaps="handled">
             <View style={globalStyles.card}>
               <Text style={styles.instruction}>
                 {'Seleccione los datos para el pago'}
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     width: '100%',
-    paddingBottom: 20,
+    flexGrow: 1,
   },
   instruction: {
     fontSize: 16,

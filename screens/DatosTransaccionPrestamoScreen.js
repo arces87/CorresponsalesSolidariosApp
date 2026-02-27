@@ -128,17 +128,18 @@ export default function DatosTransaccionPrestamoScreen() {
     }
   }, [catalogos]);
 
-  // Establecer valorParaEstarAlDia cuando se selecciona un préstamo
+  // Establecer valor límite y valor inicial (valorCancelarHastaCuotaCurso) cuando se selecciona un préstamo
   useEffect(() => {
     if (prestamoSeleccionado && prestamos.length > 0) {
       const prestamoSeleccionadoObj = prestamos.find(p => String(p.secuencial) === prestamoSeleccionado);
-      if (prestamoSeleccionadoObj && prestamoSeleccionadoObj.valorParaEstarAlDia) {
-        const valorInicial = prestamoSeleccionadoObj.valorParaEstarAlDia.toFixed(2);
-        setValorTransaccion(valorInicial);
-        setValorMaximo(prestamoSeleccionadoObj.valorParaEstarAlDia);
+      if (prestamoSeleccionadoObj) {
+        const limite = prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso ?? 0;
+        setValorMaximo(limite);
+        if (prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso != null) {
+          setValorTransaccion(Number(prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso).toFixed(2));
+        }
       }
     } else {
-      // Si no hay préstamo seleccionado, limpiar el valor
       setValorTransaccion('');
       setValorMaximo(0);
     }
@@ -175,7 +176,7 @@ export default function DatosTransaccionPrestamoScreen() {
         true);
     } catch (error) {
       console.error('Error al buscar cliente:', error);
-      setError(error.message || 'Error al buscar el cliente');
+      setError(error.message || 'Error al buscar el socio');
       mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
     } finally {
       setLoading(false);
@@ -208,7 +209,7 @@ export default function DatosTransaccionPrestamoScreen() {
       }
     } catch (error) {
       console.error('Error al buscar prestamos:', error);
-      setError('No se pudieron cargar los prestamos del cliente');
+      setError('No se pudieron cargar los prestamos del socio');
     } finally {
       setCargandoPrestamos(false);
     }
@@ -259,7 +260,7 @@ export default function DatosTransaccionPrestamoScreen() {
         </View>
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
+          contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]}
           showsVerticalScrollIndicator={true}
         >
         <View style={globalStyles.card}>
@@ -332,41 +333,56 @@ export default function DatosTransaccionPrestamoScreen() {
                 </View>
               )}
 
-              {/* Selector de Prestamos */}
+              {/* Lista de Préstamos */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>SELECCIONAR PRESTAMO</Text>
+                <Text style={styles.sectionTitle}>SELECCIONAR PRÉSTAMO</Text>
                 {cargandoPrestamos ? (
                   <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
                 ) : prestamos.length > 0 ? (
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={prestamoSeleccionado}
-                      onValueChange={(itemValue) => setPrestamoSeleccionado(itemValue)}
-                      style={styles.picker}
-                      dropdownIconColor="#2957a4"
-                    >
-                      {prestamos.map((prestamo) => (
-                        <Picker.Item
+                  <View style={styles.loansListContainer}>
+                    {prestamos.map((prestamo) => {
+                      const isSelected = String(prestamo.secuencial) === prestamoSeleccionado;
+                      return (
+                        <TouchableOpacity
                           key={prestamo.secuencial}
-                          label={`${prestamo.tipo} - (${prestamo.codigo})`}
-                          value={String(prestamo.secuencial)}
-                        />
-                      ))}
-                    </Picker>
+                          style={[styles.loanListItem, isSelected && styles.loanListItemSelected]}
+                          onPress={() => setPrestamoSeleccionado(String(prestamo.secuencial))}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.loanListItemHeader}>
+                            <Text style={[styles.loanListCode, isSelected && styles.loanListItemSelectedText]}>
+                              {prestamo.codigo || '—'}
+                            </Text>
+                            <Text style={[styles.loanListBadge, isSelected && styles.loanListItemSelectedText]}>
+                              {prestamo.tipo || ''}
+                            </Text>
+                          </View>
+                          <View style={styles.loanListItemRow}>
+                            <Text style={styles.loanListLabel}>Valor para estar al día: </Text>
+                            <Text style={[styles.loanListValue, isSelected && styles.loanListItemSelectedText]}>
+                              S/{prestamo.valorParaEstarAlDia != null
+                                ? Number(prestamo.valorParaEstarAlDia).toFixed(2)
+                                : '0.00'}
+                            </Text>
+                          </View>
+                          <View style={styles.loanListItemRow}>
+                            <Text style={styles.loanListLabel}>Cuota a cancelar: </Text>
+                            <Text style={[styles.loanListValue, isSelected && styles.loanListItemSelectedText]}>
+                              S/{prestamo.valorCancelarHastaCuotaCurso != null
+                                ? Number(prestamo.valorCancelarHastaCuotaCurso).toFixed(2)
+                                : '0.00'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 ) : (
-                  <Text style={styles.noAccountsText}>No se encontraron prestamos</Text>
+                  <Text style={styles.noAccountsText}>No se encontraron préstamos</Text>
                 )}
 
                 {prestamoSeleccionado && prestamos.length > 0 && (
                   <View style={styles.accountDetails}>
-                    <Text style={styles.accountDetailText}>
-                      Saldo capital: S/{prestamos.find(c => String(c.secuencial) === prestamoSeleccionado)?.saldo?.toFixed(2) || '0.00'}                      
-                    </Text>
-                    <Text style={styles.accountDetailText}>                      
-                      Cuota a cancelar: S/ {prestamos.find(c => String(c.secuencial) === prestamoSeleccionado)?.valorParaEstarAlDia?.toFixed(2) || '0.00'}
-                    </Text>
-
                     <View style={styles.inputContainer}>
                       <Text style={styles.label}>Valor de la transacción</Text>
                       <View style={styles.currencyInputContainer}>
@@ -637,6 +653,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  loansListContainer: {
+    marginBottom: 10,
+  },
+  loanListItem: {
+    padding: 14,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#dee2e6',
+    backgroundColor: '#fff',
+  },
+  loanListItemSelected: {
+    borderColor: '#2B4F8C',
+    backgroundColor: '#E8EEF7',
+  },
+  loanListItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 6,
+  },
+  loanListCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2B4F8C',
+  },
+  loanListBadge: {
+    fontSize: 13,
+    color: '#495057',
+  },
+  loanListItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  loanListLabel: {
+    fontSize: 13,
+    color: '#6c757d',
+    marginRight: 4,
+  },
+  loanListValue: {
+    fontSize: 14,
+    color: '#212529',
+    fontWeight: '500',
+  },
+  loanListItemSelectedText: {
+    color: '#2B4F8C',
+  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#2B4F8C',
@@ -654,6 +719,5 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    paddingBottom: 20,
   },
 });

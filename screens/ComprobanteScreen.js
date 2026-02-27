@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
 import PrintService from '../services/PrintService';
@@ -10,7 +10,7 @@ import { globalStyles } from '../styles/globalStyles';
 
 export default function ComprobanteScreen() {
   const router = useRouter();
-  const { monto, comision, total, referencia, fecha } = useLocalSearchParams();
+  const { monto, comision, total, referencia, fecha, labelTransaccion, nombreSocio, numeroCuenta, codigoOperacion, observacion, usuario, negocio, identificacionCliente } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [imprimiendo, setImprimiendo] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,15 +58,22 @@ export default function ComprobanteScreen() {
         return;
       }
 
-      // Preparar datos del comprobante
+      // Preparar datos del comprobante (formato según imagen: institución, tipo, monto, detalle, pie)
       const comprobante = {
         fecha: fecha || new Date().toLocaleString(),
         referencia: referencia || 'N/A',
         monto: parseFloat(monto) || 0,
         comision: parseFloat(comision) || 0,
         total: parseFloat(total) || 0,
-        tipo: 'Transacción',
-        deviceId: deviceIdSeleccionado, // Incluir deviceId si se proporciona
+        tipo: labelTransaccion || 'Transacción',
+        cliente: nombreSocio || '',
+        numeroCuenta: numeroCuenta || '',
+        codigoOperacion: codigoOperacion || referencia || 'N/A',
+        observacion: observacion || '',
+        usuario: usuario || '',
+        negocio: negocio || '',
+        identificacionCliente: identificacionCliente || '',
+        deviceId: deviceIdSeleccionado,
       };
 
       // Intentar imprimir
@@ -92,7 +99,14 @@ export default function ComprobanteScreen() {
           monto: parseFloat(monto) || 0,
           comision: parseFloat(comision) || 0,
           total: parseFloat(total) || 0,
-          tipo: 'Transacción',
+          tipo: labelTransaccion || 'Transacción',
+          cliente: nombreSocio || '',
+          numeroCuenta: numeroCuenta || '',
+          codigoOperacion: codigoOperacion || referencia || 'N/A',
+          observacion: observacion || '',
+          usuario: usuario || '',
+          negocio: negocio || '',
+          identificacionCliente: identificacionCliente || '',
         });
         setSelectorVisible(true);
         setImprimiendo(false);
@@ -112,6 +126,15 @@ export default function ComprobanteScreen() {
     handleImprimir(deviceId);
   };
 
+  // Datos estáticos y enmascarado igual que en PrintService (previsualización = lo que se imprime)
+  const estaticos = PrintService.COMPROBANTE_DATOS_ESTATICOS;
+  const cuentaEnmascarada = numeroCuenta ? PrintService.enmascararNumeroCuenta(numeroCuenta) : '';
+  const tipoLabel = (labelTransaccion || 'DEPOSITO EN CUENTA').toUpperCase();
+  const montoStr = `S/ ${(parseFloat(monto) || 0).toFixed(2)}`;
+  const fechaHora = PrintService.normalizarFechaHora(fecha);
+  const codigoOp = codigoOperacion || referencia || 'N/A';
+  const observacionStr = observacion ? `:${observacion}` : '';
+  const negocioStr = negocio || '';
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -133,44 +156,66 @@ export default function ComprobanteScreen() {
             <Text style={styles.transactionStatus}>Transacción Exitosa</Text>
           </View>
         </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(24, insets.bottom + 24) }]}
+          showsVerticalScrollIndicator={true}
+        >
         <View style={globalStyles.card}>
-          <View style={styles.tableContainer}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.tableHeaderText}>Detalle</Text>
-              <Text style={[styles.tableHeaderText, styles.amountColumn]}>Valor</Text>
+          <Text style={styles.previewTitle}>Vista previa del comprobante</Text>
+          <View style={styles.comprobantePreview}>
+            {estaticos.nombreEmpresa ? (
+              <Text style={styles.previewInstitucion}>{estaticos.nombreEmpresa}</Text>
+            ) : null}            
+            <Text style={styles.previewRegulado}>REGULADO Y SUPERVISADO POR LA S.B.S</Text>
+            {estaticos.ruc ? <Text style={styles.previewRuc}>RUC:{estaticos.ruc}</Text> : null}
+            <Text style={styles.previewOperacion}>Operación realizada en su Asesor Virtual</Text>
+            <View style={styles.previewSeparator} />
+            <Text style={styles.previewTipo}>{tipoLabel}</Text>
+            <Text style={styles.previewMonto}>{montoStr}</Text>
+            <View style={styles.previewSeparator} />
+            <View style={styles.previewDetailRow}>
+              <Text style={styles.previewDetailLabel}>Fecha y Hora:</Text>
+              <Text style={styles.previewDetailValue}>{fechaHora}</Text>
             </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Fecha Transaccion:</Text>
-              <Text style={styles.detailValue}>{fecha}</Text>
+            {identificacionCliente ? (
+              <View style={styles.previewDetailRow}>
+                <Text style={styles.previewDetailLabel}>Identificación Socio:</Text>
+                <Text style={styles.previewDetailValue}>{identificacionCliente}</Text>
+              </View>
+            ) : null}
+            {nombreSocio ? (
+              <View style={styles.previewDetailRow}>
+                <Text style={styles.previewDetailLabel}>Nombre del Socio:</Text>
+                <Text style={styles.previewDetailValue} numberOfLines={2}>{nombreSocio}</Text>
+              </View>
+            ) : null}
+            {cuentaEnmascarada ? (
+              <View style={styles.previewDetailRow}>
+                <Text style={styles.previewDetailLabel}>N° de Cuenta:</Text>
+                <Text style={styles.previewDetailValue}>{cuentaEnmascarada}</Text>
+              </View>
+            ) : null}
+            <View style={styles.previewDetailRow}>
+              <Text style={styles.previewDetailLabel}>Código Operación:</Text>
+              <Text style={styles.previewDetailValue}>{codigoOp}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>N° de Comprobate:</Text>
-              <Text style={[styles.detailValue, { fontWeight: 'bold' }]}>{referencia}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Monto</Text>
-              <Text style={[styles.detailValue, styles.amountColumn]}>S/{parseFloat(monto).toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Comisión</Text>
-              <Text style={[styles.detailValue, styles.amountColumn]}>S/{parseFloat(comision).toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.tableDivider} />
-
-            <View style={[styles.tableRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={[styles.totalValue, styles.amountColumn]}>S/{parseFloat(total).toFixed(2)}</Text>
-            </View>
+            {observacion ? (
+              <View style={styles.previewDetailRow}>
+                <Text style={styles.previewDetailLabel}>Observación:</Text>
+                <Text style={styles.previewDetailValue}>{observacionStr}</Text>
+              </View>
+            ) : null}
+            <View style={styles.previewSeparator} />
+            {negocioStr ? (
+              <Text style={styles.previewPie}>NEGOCIO: {negocioStr}</Text>
+            ) : null}
+            {usuario ? <Text style={styles.previewPie}>USUARIO: {usuario}</Text> : null}
+            {estaticos.atencionAlSocio ? (
+              <Text style={styles.previewPie}>ATENCION AL SOCIO: {estaticos.atencionAlSocio}</Text>
+            ) : null}
           </View>
 
-          <Text style={styles.note}>
-            * Este comprobante es válido como constancia de la transacción realizada.
-          </Text>
-          
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
               style={[styles.button, imprimiendo && styles.buttonDisabled]}
@@ -193,6 +238,7 @@ export default function ComprobanteScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </ScrollView>
       </LinearGradient>
 
       <CustomModal
@@ -262,7 +308,7 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,    
+    flex: 1,
   },
   gradient: {
     flex: 1,
@@ -270,6 +316,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: 20,
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    paddingHorizontal: 16,
   },
   header: {
     width: '100%',
@@ -306,80 +361,91 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  detailLabel: {
+  previewTitle: {
+    fontSize: 12,
     color: '#666',
-    fontSize: 14,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  detailValue: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tableContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+  comprobantePreview: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
   },
-  tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginBottom: 12,
-  },
-  tableHeaderText: {
-    color: '#2B4F8C',
-    fontWeight: '600',
+  previewInstitucion: {
     fontSize: 14,
-  },
-  amountColumn: {
-    textAlign: 'right',
-    flex: 1,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  tableCell: {
-    color: '#333',
-    fontSize: 14,
-  },
-  tableDivider: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 8,
-  },
-  totalRow: {
-    marginTop: 8,
-  },
-  totalLabel: {
-    color: '#2B4F8C',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  totalValue: {
-    color: '#2B4F8C',
     fontWeight: 'bold',
-    fontSize: 16,
-  },
-  note: {
-    color: '#666',
-    fontSize: 12,
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 4,
+  },
+  previewRuc: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 4,
+  },
+  previewRegulado: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  previewOperacion: {
+    fontSize: 11,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  previewSeparator: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#ddd',
+    marginVertical: 10,
+  },
+  previewTipo: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2B4F8C',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  previewMonto: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2B4F8C',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  previewDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    width: '100%',
+    marginBottom: 6,
+  },
+  previewDetailLabel: {
+    fontSize: 12,
+    color: '#666',
+    flex: 0,
+    marginRight: 8,
+  },
+  previewDetailValue: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+  },
+  previewPie: {
+    fontSize: 11,
+    color: '#333',
+    alignSelf: 'flex-start',
+    marginBottom: 4,
   },
   buttonContainer: {
     flexDirection: 'row',

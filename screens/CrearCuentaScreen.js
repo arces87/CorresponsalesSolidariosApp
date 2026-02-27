@@ -122,7 +122,7 @@ export default function CrearCuentaScreen() {
           resultado.secuencialEmpresa);
       } catch (error) {
         console.error('Error al buscar cliente:', error);
-        setError(error.message || 'Error al buscar el cliente');
+        setError(error.message || 'Error al buscar el socio');
         mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
       } finally {
         setLoading(false);

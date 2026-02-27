@@ -371,6 +371,13 @@ class PrintService {
     speed: 90, // mm/s
   };
 
+  /** Datos estáticos del comprobante (institución, RUC, atención al socio) */
+  static COMPROBANTE_DATOS_ESTATICOS = {
+    nombreEmpresa: 'COOPAC LOS ANDES DE COTARUSI',
+    ruc: '20526918429',    
+    atencionAlSocio: '+51945347147',
+  };
+
   // Almacenar el dispositivo conectado
   static dispositivoConectado = null;
   /**
@@ -679,37 +686,30 @@ class PrintService {
    */
   static async imprimirComprobante(comprobante) {
     try {
-      const {
-        fecha,
-        referencia,
-        monto,
-        comision,
-        total,
-        tipo = 'Transacción',
-        cliente = ''
-      } = comprobante;
+      const datos = {
+        fecha: comprobante.fecha,
+        referencia: comprobante.referencia,
+        monto: comprobante.monto,
+        comision: comprobante.comision ?? 0,
+        total: comprobante.total,
+        tipo: comprobante.tipo || 'Transacción',
+        cliente: comprobante.cliente || '',
+        nombreInstitucion: comprobante.nombreInstitucion || '',
+        ruc: comprobante.ruc || '',
+        numeroCuenta: comprobante.numeroCuenta || '',
+        codigoOperacion: comprobante.codigoOperacion || comprobante.referencia,
+        observacion: comprobante.observacion || '',
+        negocio: comprobante.negocio || '',
+        usuario: comprobante.usuario || '',
+        identificacionCliente: comprobante.identificacionCliente || '',
+        atencionAlSocio: comprobante.atencionAlSocio || ''
+      };
 
       // Generar comandos ESC/POS para la impresora ADV7011
-      const comandos = this.generarComandosESCPOS({
-        fecha,
-        referencia,
-        monto,
-        comision,
-        total,
-        tipo,
-        cliente
-      });
+      const comandos = this.generarComandosESCPOS(datos);
 
       // Formatear también para visualización (texto plano)
-      const contenido = this.formatearComprobante({
-        fecha,
-        referencia,
-        monto,
-        comision,
-        total,
-        tipo,
-        cliente
-      });
+      const contenido = this.formatearComprobante(datos);
 
       console.log('Comprobante formateado para ADV7011:', contenido);
       console.log('Comandos ESC/POS generados:', comandos.length, 'comandos');
@@ -825,7 +825,7 @@ class PrintService {
   }
 
   /**
-   * Genera comandos ESC/POS para la impresora térmica ADV7011
+   * Genera comandos ESC/POS para la impresora (formato comprobante según imagen: institución, tipo, monto, detalle, pie).
    * @param {Object} datos - Datos del comprobante
    * @returns {Array} Array de comandos ESC/POS
    */
@@ -837,77 +837,59 @@ class PrintService {
       comision,
       total,
       tipo,
-      cliente
+      cliente,
+      numeroCuenta,
+      codigoOperacion,
+      observacion,
+      usuario,
+      negocio,
+      identificacionCliente
     } = datos;
 
     const comandos = [];
     const width = this.PRINTER_CONFIG.width;
+    const estaticos = this.COMPROBANTE_DATOS_ESTATICOS;
+    const codigoOp = codigoOperacion || referencia;
 
     // Inicializar impresora (ESC @)
     comandos.push('\x1B\x40'); // Reset printer
-    
-    // Centrar texto (ESC a 1)
     comandos.push('\x1B\x61\x01'); // Center align
-    
-    // Texto grande para título (GS ! 0x11 = doble altura y ancho)
-    comandos.push('\x1D\x21\x11'); // Double width and height
-    comandos.push('COMPROBANTE\n');
-    comandos.push('DE TRANSACCION\n');
-    
-    // Reset formato
-    comandos.push('\x1D\x21\x00'); // Normal size
-    comandos.push('\x1B\x61\x00'); // Left align
-    comandos.push('────────────────────────────\n');
-    
-    // Información de la transacción
-    comandos.push(`Tipo: ${tipo}\n`);
-    if (cliente) {
-      comandos.push(`Cliente: ${this.truncarTexto(cliente, width - 10)}\n`);
+
+    // Encabezado (solo lo que muestra la imagen)
+    if (estaticos.nombreEmpresa) {
+      comandos.push('\x1D\x21\x01'); // Double height
+      comandos.push(this.centrarTexto(estaticos.nombreEmpresa.toUpperCase(), width) + '\n');
+      comandos.push('\x1D\x21\x00');
     }
-    comandos.push(`Fecha: ${fecha}\n`);
-    comandos.push(`N°: ${referencia}\n`);
-    comandos.push('────────────────────────────\n');
-    
-    // Detalles con formato de tabla
-    comandos.push('Detalle          Valor\n');
-    comandos.push('────────────────────────────\n');
-    
-    // Monto
-    const montoStr = `$${parseFloat(monto).toFixed(2)}`;
-    comandos.push(`Monto${this.espacios(width - 10 - montoStr.length)}${montoStr}\n`);
-    
-    // Comisión
-    const comisionStr = `$${parseFloat(comision).toFixed(2)}`;
-    comandos.push(`Comision${this.espacios(width - 10 - comisionStr.length)}${comisionStr}\n`);
-    
-    comandos.push('────────────────────────────\n');
-    
-    // Total en negrita
-    comandos.push('\x1B\x45\x01'); // Bold on
-    const totalStr = `$${parseFloat(total).toFixed(2)}`;
-    comandos.push(`TOTAL${this.espacios(width - 6 - totalStr.length)}${totalStr}\n`);
-    comandos.push('\x1B\x45\x00'); // Bold off
-    comandos.push('────────────────────────────\n\n');
-    
-    // Pie de página
-    comandos.push('\x1B\x61\x01'); // Center align
-    comandos.push('Este comprobante es válido\n');
-    comandos.push('como constancia de la\n');
-    comandos.push('transacción realizada.\n\n');
-    
+    comandos.push(this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n');
+    if (estaticos.ruc) comandos.push(`RUC:${estaticos.ruc}\n`);    
+    comandos.push(this.centrarTexto('Operación realizada en su Asesor Virtual', width) + '\n\n');
     comandos.push('\x1B\x61\x00'); // Left align
     comandos.push('────────────────────────────\n');
-    comandos.push(`Fecha imp: ${new Date().toLocaleString('es-EC')}\n`);
-    comandos.push('────────────────────────────\n\n');
-    
-    // Cortar papel (GS V 0)
-    comandos.push('\x1D\x56\x00'); // Cut paper
-    
+    comandos.push('\x1B\x61\x01');
+    comandos.push(this.centrarTexto((tipo || 'DEPOSITO EN CUENTA').toUpperCase(), width) + '\n');
+    comandos.push('\x1D\x21\x11'); // Double size amount
+    comandos.push(this.centrarTexto(`S/ ${parseFloat(monto).toFixed(2)}`, width) + '\n');
+    comandos.push('\x1D\x21\x00');
+    comandos.push('\x1B\x61\x00');
+    comandos.push('────────────────────────────\n');
+    const fechaHora = this.normalizarFechaHora(fecha);
+    comandos.push(`Fecha y Hora: ${fechaHora}\n`);
+    if (identificacionCliente) comandos.push(`Identificación Socio: ${identificacionCliente}\n`);
+    if (cliente) comandos.push(`Nombre del Socio: ${this.truncarTexto(cliente, width - 20)}\n`);
+      if (numeroCuenta) comandos.push(`N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`);
+      if (codigoOp) comandos.push(`Código Operación: ${codigoOp}\n`);
+    if (observacion) comandos.push(`Observación: :${observacion}\n`);
+    comandos.push('────────────────────────────\n');
+    if (negocio) comandos.push(`NEGOCIO: ${negocio}\n`);
+    if (usuario) comandos.push(`USUARIO: ${usuario}\n`);
+    if (estaticos.atencionAlSocio) comandos.push(`ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`);
+    comandos.push('\x1D\x56\x00'); // Cortar papel
     return comandos;
   }
 
   /**
-   * Formatea el contenido del comprobante para impresión (versión texto plano)
+   * Formatea el contenido del comprobante para impresión (versión texto plano, mismo formato que la imagen).
    * @param {Object} datos - Datos del comprobante
    * @returns {string} Contenido formateado
    */
@@ -919,50 +901,39 @@ class PrintService {
       comision,
       total,
       tipo,
-      cliente
+      cliente,
+      numeroCuenta,
+      codigoOperacion,
+      observacion,
+      usuario,
+      negocio,
+      identificacionCliente
     } = datos;
 
     const width = this.PRINTER_CONFIG.width;
+    const estaticos = this.COMPROBANTE_DATOS_ESTATICOS;
+    const codigoOp = codigoOperacion || referencia;
     let contenido = '';
-    
-    // Encabezado centrado
-    contenido += this.centrarTexto('COMPROBANTE', width) + '\n';
-    contenido += this.centrarTexto('DE TRANSACCION', width) + '\n';
-    contenido += '────────────────────────────\n';
-    
-    // Información de la transacción
-    contenido += `Tipo: ${tipo}\n`;
-    if (cliente) {
-      contenido += `Cliente: ${this.truncarTexto(cliente, width - 10)}\n`;
-    }
-    contenido += `Fecha: ${fecha}\n`;
-    contenido += `N°: ${referencia}\n`;
-    contenido += '────────────────────────────\n';
-    
-    // Detalles
-    contenido += 'Detalle          Valor\n';
-    contenido += '────────────────────────────\n';
-    
-    const montoStr = `$${parseFloat(monto).toFixed(2)}`;
-    contenido += `Monto${this.espacios(width - 10 - montoStr.length)}${montoStr}\n`;
-    
-    const comisionStr = `$${parseFloat(comision).toFixed(2)}`;
-    contenido += `Comision${this.espacios(width - 10 - comisionStr.length)}${comisionStr}\n`;
-    
-    contenido += '────────────────────────────\n';
-    
-    const totalStr = `$${parseFloat(total).toFixed(2)}`;
-    contenido += `TOTAL${this.espacios(width - 6 - totalStr.length)}${totalStr}\n`;
-    contenido += '────────────────────────────\n\n';
-    
-    // Pie de página
-    contenido += this.centrarTexto('Este comprobante es válido', width) + '\n';
-    contenido += this.centrarTexto('como constancia de la', width) + '\n';
-    contenido += this.centrarTexto('transacción realizada.', width) + '\n\n';
-    contenido += '────────────────────────────\n';
-    contenido += `Fecha imp: ${new Date().toLocaleString('es-EC')}\n`;
-    contenido += '────────────────────────────\n';
 
+    if (estaticos.nombreEmpresa) contenido += this.centrarTexto(estaticos.nombreEmpresa.toUpperCase(), width) + '\n';
+    if (estaticos.ruc) contenido += `RUC:${estaticos.ruc}\n`;
+    contenido += this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n';
+    contenido += this.centrarTexto('Operación realizada en su Asesor Virtual', width) + '\n\n';
+    contenido += '────────────────────────────\n';
+    contenido += this.centrarTexto((tipo || 'DEPOSITO EN CUENTA').toUpperCase(), width) + '\n';
+    contenido += this.centrarTexto(`S/ ${parseFloat(monto).toFixed(2)}`, width) + '\n';
+    contenido += '────────────────────────────\n';
+    const fechaHora = this.normalizarFechaHora(fecha);
+    contenido += `Fecha y Hora: ${fechaHora}\n`;
+    if (identificacionCliente) contenido += `Identificación Socio: ${identificacionCliente}\n`;
+    if (cliente) contenido += `Nombre del Socio: ${this.truncarTexto(cliente, width - 20)}\n`;
+    if (numeroCuenta) contenido += `N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`;
+    if (codigoOp) contenido += `Código Operación: ${codigoOp}\n`;
+    if (observacion) contenido += `Observación: :${observacion}\n`;
+    contenido += '────────────────────────────\n';
+    if (negocio) contenido += `NEGOCIO: ${negocio}\n`;
+    if (usuario) contenido += `USUARIO: ${usuario}\n`;
+    if (estaticos.atencionAlSocio) contenido += `ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`;
     return contenido;
   }
 
@@ -996,6 +967,37 @@ class PrintService {
     if (!texto) return '';
     if (texto.length <= maxLength) return texto;
     return texto.substring(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Enmascara número de cuenta: primeros 7 + ***** + últimos 3 (ej. 1630071*****917)
+   * @param {string} numeroCuenta - Número de cuenta
+   * @returns {string} Cuenta enmascarada
+   */
+  static enmascararNumeroCuenta(numeroCuenta) {
+    if (!numeroCuenta || typeof numeroCuenta !== 'string') return numeroCuenta || '';
+    const s = String(numeroCuenta).trim();
+    if (s.length <= 10) return s;
+    return s.substring(0, 7) + '*****' + s.substring(s.length - 3);
+  }
+
+  /**
+   * Normaliza fecha para comprobante: si viene solo fecha (sin hora), añade la hora actual.
+   * @param {string} [fecha] - Fecha desde el API (puede ser solo fecha)
+   * @returns {string} Fecha y hora en formato locale (es-EC)
+   */
+  static normalizarFechaHora(fecha) {
+    const ahora = new Date();
+    const conHora = () => ahora.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' });
+    if (!fecha) return conHora();
+    const s = String(fecha).trim();
+    if (!s) return conHora();
+    if (/:\d{2}/.test(s)) return s;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' });
+    }
+    return s + ' ' + ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
   /**

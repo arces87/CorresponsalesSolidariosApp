@@ -160,7 +160,7 @@ export default function ObligacionesScreen() {
         true);
     } catch (error) {
       console.error('Error al buscar cliente:', error);
-      setError(error.message || 'Error al buscar el cliente');
+      setError(error.message || 'Error al buscar el socio');
       mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
     } finally {
       setLoading(false);
@@ -195,7 +195,7 @@ export default function ObligacionesScreen() {
         secuencial: item.secuencial,
         tipo: item.rubroPorCobrar || 'Sin tipo',
         codigo: String(item.secuencialTipoRubroPorCobrar || item.secuencial),
-        saldo: (item.valorPorCobrar - item.valorCobrado) || 0
+        saldo: (item.valorPorCobrar) || 0
       }));
 
       setObligaciones(obligacionesMapeadas);
@@ -257,7 +257,7 @@ export default function ObligacionesScreen() {
         </View>
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]}
           showsVerticalScrollIndicator={true}
           keyboardShouldPersistTaps="handled"
         >
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingBottom: 20,
+    flexGrow: 1,
   },
   headerWrapper: {
     width: '92%',

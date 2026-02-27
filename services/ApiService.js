@@ -34,8 +34,8 @@ let imei = getGUID(mac);
 
 //mac = '022b5f75d756b285';
 //imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-//mac = 'RP1A.200720.011';
-//imei = '000000006CC6CCA5';
+mac = 'RP1A.200720.011';
+imei = '000000006CC6CCA5';
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -397,6 +397,7 @@ class ApiService {
    * @param {number} params.numeroCliente - Número de cliente (opcional)
    * @param {number} params.secuencialEmpresa - ID de la empresa (opcional)
    * @param {string} params.usuario - Nombre de usuario del corresponsal
+   * @param {boolean} [params.esParaDeposito] - Indica si la consulta es para operación de depósito
    * @returns {Promise<Object>} - Datos de las cuentas del cliente
    */
   static async buscarCuentas({ 
@@ -404,7 +405,8 @@ class ApiService {
     secuencialTipoIdentificacion, 
     numeroCliente, 
     secuencialEmpresa, 
-    usuario 
+    usuario,
+    esParaDeposito 
   }) {
     const url = `${BASE_URL}/Cuenta/buscarCuentas`;
     try {
@@ -422,6 +424,7 @@ class ApiService {
         numeroCliente: numeroCliente || null,
         secuencialEmpresa: secuencialEmpresa || null,
         usuario: usuario || null,
+        esParaDeposito: esParaDeposito ?? null,
         imei,
         mac,
         latitud: location.latitud,
@@ -1405,6 +1408,7 @@ class ApiService {
         codigoDactilar: params.codigoDactilar || null,
         mail: params.mail || null,
         usuario: params.usuario || null,
+        GeneraPrevisionSocial: params.generaPrevisionSocial === true,
         imei: params.imei || imei || null,
         latitud: params.latitud !== undefined ? params.latitud : location.latitud,
         longitud: params.longitud !== undefined ? params.longitud : location.longitud,

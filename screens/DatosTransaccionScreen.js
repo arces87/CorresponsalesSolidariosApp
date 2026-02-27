@@ -24,6 +24,7 @@ export default function DatosTransaccionScreen() {
   const [loading, setLoading] = useState(false);
   const [cargandoCuentas, setCargandoCuentas] = useState(false);
   const [valorTransaccion, setValorTransaccion] = useState('');
+  const [observacionDeposito, setObservacionDeposito] = useState('');
   const [menuLabel, setMenuLabel] = useState('');
   const [menuAccion, setMenuAccion] = useState('');
 
@@ -39,10 +40,14 @@ export default function DatosTransaccionScreen() {
         numerocuentacliente: cuentatransaccion.codigo,
         tipocuenta: cuentatransaccion.tipoCuentaNombre,
         secuencialcuenta: cuentatransaccion.secuencialCuenta,
+        tipoRegistroFirma: cuentatransaccion.tipoRegistroFirma,
         valor: valorTransaccion,
         nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
         identificacioncliente: cliente.identificacion
       };
+      if (menuAccion === 'deposito') {
+        transaccionData.observacionDeposito = (observacionDeposito || '').trim();
+      }
 
       setUserData(prevData => ({
         ...prevData,
@@ -193,7 +198,8 @@ export default function DatosTransaccionScreen() {
         resultado.identificacion,
         resultado.secuencialTipoIdentificacion,
         resultado.numeroCliente,
-        resultado.secuencialEmpresa);
+        resultado.secuencialEmpresa,
+        menuAccion === 'deposito');
     } catch (error) {
       console.error('Error al buscar cliente:', error);
       setError(error.message || 'Error al buscar el cliente');
@@ -207,7 +213,8 @@ export default function DatosTransaccionScreen() {
     identificacion,
     secuencialTipoIdentificacion,
     numeroCliente,
-    secuencialEmpresa
+    secuencialEmpresa,
+    esParaDeposito = false
   ) => {
     if (!identificacion || !secuencialTipoIdentificacion) return;
 
@@ -221,7 +228,8 @@ export default function DatosTransaccionScreen() {
         secuencialTipoIdentificacion,
         numeroCliente,
         secuencialEmpresa,
-        usuario: userData?.usuario
+        usuario: userData?.usuario,
+        esParaDeposito
       });
 
       console.log('Cuentas encontradas:', resultado);
@@ -283,7 +291,7 @@ export default function DatosTransaccionScreen() {
           </View>
         </View>
         <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]} keyboardShouldPersistTaps="handled">
             <View style={globalStyles.card}>
               <Text style={styles.instruction}>
                 {'Seleccione los datos de la transacción'}
@@ -350,27 +358,41 @@ export default function DatosTransaccionScreen() {
                     </View>
                   )}
 
-                  {/* Selector de Cuentas */}
+                  {/* Lista de Cuentas */}
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>SELECCIONAR CUENTA</Text>
                     {cargandoCuentas ? (
                       <ActivityIndicator size="small" color="#2957a4" style={styles.loadingIndicator} />
                     ) : cuentas.length > 0 ? (
-                      <View style={styles.pickerContainer}>
-                        <Picker
-                          selectedValue={cuentaSeleccionada}
-                          onValueChange={(itemValue) => setCuentaSeleccionada(itemValue)}
-                          style={styles.picker}
-                          dropdownIconColor="#2957a4"
-                        >
-                          {cuentas.map((cuenta) => (
-                            <Picker.Item
+                      <View style={styles.accountsListContainer}>
+                        {cuentas.map((cuenta) => {
+                          const isSelected = String(cuenta.secuencialCuenta) === cuentaSeleccionada;
+                          return (
+                            <TouchableOpacity
                               key={cuenta.secuencialCuenta}
-                              label={`${cuenta.tipoCuentaNombre} - ${cuenta.monedaNombre} (${cuenta.codigo})`}
-                              value={String(cuenta.secuencialCuenta)}
-                            />
-                          ))}
-                        </Picker>
+                              style={[styles.accountListItem, isSelected && styles.accountListItemSelected]}
+                              onPress={() => setCuentaSeleccionada(String(cuenta.secuencialCuenta))}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.accountListItemHeader}>
+                                <Text style={[styles.accountListCode, isSelected && styles.accountListItemSelectedText]}>
+                                  {cuenta.codigo || '—'}
+                                </Text>
+                                <Text style={[styles.accountListBadge, isSelected && styles.accountListItemSelectedText]}>
+                                  {cuenta.tipoCuentaNombre || ''} · {cuenta.monedaNombre || ''}
+                                </Text>
+                              </View>
+                              {cuenta.tipoRegistroFirma != null && cuenta.tipoRegistroFirma !== '' && (
+                                <View style={styles.accountListItemRow}>
+                                  <Text style={styles.accountListLabel}>Registro: </Text>
+                                  <Text style={[styles.accountListValue, isSelected && styles.accountListItemSelectedText]}>
+                                    {cuenta.tipoRegistroFirma}
+                                  </Text>
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
                     ) : (
                       <Text style={styles.noAccountsText}>No se encontraron cuentas</Text>
@@ -378,10 +400,27 @@ export default function DatosTransaccionScreen() {
 
                     {cuentaSeleccionada && cuentas.length > 0 && (
                       <View style={styles.accountDetails}>
-                        <Text style={styles.accountDetailText}>
+                        
+                        {/*<Text style={styles.accountDetailText}>
                           Saldo disponible: S/{cuentas.find(c => String(c.secuencialCuenta) === cuentaSeleccionada)?.disponibleParaTransaccion?.toFixed(2) || '0.00'}
-                        </Text>
-
+                        </Text>*/}
+                        
+                        {menuAccion === 'deposito' && (
+                          <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Observación (opcional)</Text>
+                            <TextInput
+                              style={styles.observacionInput}
+                              placeholder="Ej: Jairo Maldonado Rivas"
+                              placeholderTextColor="#999"
+                              value={observacionDeposito}
+                              onChangeText={setObservacionDeposito}
+                              multiline
+                              numberOfLines={2}
+                              maxLength={200}
+                            />
+                          </View>
+                        )}
+                        
                         <View style={styles.inputContainer}>
                           <Text style={styles.label}>Valor de la transacción</Text>
                           <View style={styles.currencyInputContainer}>
@@ -445,7 +484,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     width: '100%',
-    paddingBottom: 20,
+    flexGrow: 1,
   },
   instruction: {
     fontSize: 16,
@@ -604,6 +643,16 @@ const styles = StyleSheet.create({
     color: '#2B4F8C',
     fontWeight: 'bold',
   },
+  observacionInput: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#FFF',
+    minHeight: 72,
+    textAlignVertical: 'top',
+  },
   label: {
     fontSize: 14,
     color: '#2B4F8C',
@@ -629,6 +678,55 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  accountsListContainer: {
+    marginBottom: 10,
+  },
+  accountListItem: {
+    padding: 14,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#dee2e6',
+    backgroundColor: '#fff',
+  },
+  accountListItemSelected: {
+    borderColor: '#2B4F8C',
+    backgroundColor: '#E8EEF7',
+  },
+  accountListItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 6,
+  },
+  accountListCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2B4F8C',
+  },
+  accountListBadge: {
+    fontSize: 13,
+    color: '#495057',
+  },
+  accountListItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  accountListLabel: {
+    fontSize: 13,
+    color: '#6c757d',
+    marginRight: 4,
+  },
+  accountListValue: {
+    fontSize: 14,
+    color: '#212529',
+    fontWeight: '500',
+  },
+  accountListItemSelectedText: {
+    color: '#2B4F8C',
   },
   pickerContainer: {
     borderWidth: 1,
