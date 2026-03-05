@@ -152,7 +152,8 @@ export default function CrearClienteScreen() {
             const data = await ApiService.buscarCliente({
                 identificacion: identificacion.trim(),
                 secuencialTipoIdentificacion: parseInt(tipoIdentificacion, 10),
-                usuario: userData?.usuario
+                usuario: userData?.usuario,
+                ParaCrearSocio: true
             });
             if (data && (data.nombres != null || data.identificacion != null)) {
                 setNombres(data.nombres ?? '');
@@ -281,7 +282,7 @@ export default function CrearClienteScreen() {
             } else if (fechaNac > hoy) {
                 errors.push('La fecha de nacimiento no puede ser futura');
             } else if (edad < 18) {
-                errors.push('El cliente debe ser mayor de edad');
+                errors.push('El socio debe ser mayor de edad');
             }
         }
         
@@ -333,7 +334,7 @@ export default function CrearClienteScreen() {
 
             // Verificar si la creación fue exitosa
             if (!response || !response.secuencialCliente) {
-                throw new Error('No se pudo crear el cliente correctamente');
+                throw new Error('No se pudo crear el socio correctamente');
             }
 
             // Si no requiere apertura de cuenta, solo mostrar éxito y terminar
@@ -385,7 +386,7 @@ export default function CrearClienteScreen() {
             } catch (aperturaError) {
                 console.error('Error al aperturar cuenta:', aperturaError);
                 // Mostrar error pero mantener el cliente creado
-                mostrarError('Error', aperturaError.message || 'El cliente se creó correctamente, pero hubo un error al aperturar la cuenta');
+                mostrarError('Error', aperturaError.message || 'El socio se creó correctamente, pero hubo un error al aperturar la cuenta');
                 // Esperar un momento antes de navegar de vuelta
                 setTimeout(() => {
                     router.back();
@@ -394,7 +395,7 @@ export default function CrearClienteScreen() {
         } catch (error) {
             console.error('Error al crear cliente:', error);
             // Si falla la creación del cliente, no se intenta abrir la cuenta
-            mostrarError('Error', error.message || 'Ocurrió un error al crear el cliente');
+            mostrarError('Error', error.message || 'Ocurrió un error al crear el socio');
         } finally {
             setLoading(false);
         }

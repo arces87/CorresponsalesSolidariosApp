@@ -275,7 +275,7 @@ export default function HistorialTransaccionesScreen() {
                         'Fecha no disponible'}
                     </Text>
                     <Text style={styles.transaccionCliente}>
-                      {transaccion.nombreCliente || 'Cliente no especificado'}
+                      {transaccion.nombreCliente || 'Socio no especificado'}
                     </Text>
                     <Text style={styles.transaccionCuenta}>
                       {transaccion.identificacionCliente || 'N/A'}

@@ -34,8 +34,8 @@ let imei = getGUID(mac);
 
 //mac = '022b5f75d756b285';
 //imei = '88F33DE43A5D40F4F5C4B86397B96A0B';
-mac = 'RP1A.200720.011';
-imei = '000000006CC6CCA5';
+//mac = 'RP1A.200720.011';
+//imei = '000000006CC6CCA5';
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
@@ -135,8 +135,11 @@ class ApiService {
         location = { latitud: 0, longitud: 0 };
       }
       
+      const usuarioMayusculas = (usuario != null && usuario !== '')
+        ? String(usuario).trim().toUpperCase()
+        : usuario;
       const body = {
-        usuario,
+        usuario: usuarioMayusculas,
         contrasenia,
         imei,
         mac,
@@ -335,9 +338,10 @@ class ApiService {
    * @param {string} params.identificacion - Número de identificación del cliente
    * @param {number} params.secuencialTipoIdentificacion - ID del tipo de identificación
    * @param {string} params.usuario - Nombre de usuario del corresponsal
+   * @param {boolean} [params.ParaCrearSocio=false] - true cuando la búsqueda es para el flujo de crear socio
    * @returns {Promise<Object>} - Datos del cliente encontrado
    */
-  static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuario }) {
+  static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuario, ParaCrearSocio = false }) {
     const url = `${BASE_URL}/Cliente/buscarCliente`;
     try {
       const isConnected = await NetworkService.checkConnection();
@@ -351,6 +355,7 @@ class ApiService {
         identificacion,
         secuencialTipoIdentificacion,
         usuario,
+        ParaCrearSocio: ParaCrearSocio === true,
         imei,
         mac,
         latitud: location.latitud,
@@ -1323,6 +1328,79 @@ class ApiService {
       }
     } catch (error) {
       console.error('Error en listarPrestamos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene la información de cuotas y valor adelanto de un préstamo
+   * @param {Object} params - Parámetros para la solicitud
+   * @param {number} params.secuencialPrestamo - Secuencial del préstamo
+   * @param {string} [params.usuario] - Nombre de usuario
+   * @returns {Promise<Object>} - Objeto con listCuotasValorAdelanto (array de { numeroCuota, valor, fechaVencimiento })
+   */
+  static async informacionCuotas({ secuencialPrestamo, usuario } = {}) {
+    const url = `${BASE_URL}/Prestamo/informacionCuotas`;
+
+    try {
+      const isConnected = await NetworkService.checkConnection();
+      const token = await this.getAuthToken();
+
+      if (!isConnected) {
+        throw new Error('Sin conexión a internet');
+      }
+
+      const location = await LocationService.getLocation();
+
+      const body = {
+        secuencialPrestamo: secuencialPrestamo != null ? secuencialPrestamo : null,
+        usuario: usuario || null,
+        imei: imei || null,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        mac: mac || null
+      };
+
+      console.log('Solicitando información de cuotas a:', url);
+      console.log('Datos enviados:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(body)
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errorMessage = `Error al obtener información de cuotas (${response.status})`;
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorData.title || errorMessage;
+          } catch (e) {
+            errorMessage = responseText;
+          }
+        }
+        console.error('Error en la respuesta:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        // Esquema: NumeroCuotasValorAdelantoListaResponse { listaCuotasValorAdelanto: CuotaValorAdelantoResponse[] | null }
+        const lista = data.listaCuotasValorAdelanto;
+        const listCuotasValorAdelanto = Array.isArray(lista) ? lista : [];
+        return { listCuotasValorAdelanto };
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Formato de respuesta inválido');
+      }
+    } catch (error) {
+      console.error('Error en informacionCuotas:', error);
       throw error;
     }
   }

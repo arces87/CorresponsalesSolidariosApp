@@ -4,13 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
 import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +54,7 @@ export default function LoginScreen() {
       return;
     }
     setUserData({
-      usuario: username,
+      usuario: (username || '').trim().toUpperCase(),
       contrasenia: password
     });
     router.push('/reactivar');
@@ -80,7 +81,7 @@ export default function LoginScreen() {
     try {
 
       const response = await ApiService.login({ 
-        usuario: username.trim(),
+        usuario: (username || '').trim().toUpperCase(),
         contrasenia: password.trim()
       });
 
@@ -104,7 +105,7 @@ export default function LoginScreen() {
         ...response,
         loginTimestamp: Date.now(),
         tokenExp: null,
-        usuario: username,
+        usuario: (username || '').trim().toUpperCase(),
         contrasenia: password,
         tiempootp: response.tiempoOtp  
       };
@@ -114,7 +115,7 @@ export default function LoginScreen() {
         // 3. Obtener catálogos
         try {
           const catalogos = await ApiService.obtenerDistribuidos({            
-            usuario: username.trim()
+            usuario: (username || '').trim().toUpperCase()
           });
 
           if (catalogos) {
@@ -206,7 +207,7 @@ export default function LoginScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={20}>
-          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: Math.max(24, insets.bottom + 24) }]} keyboardShouldPersistTaps="handled">
             <View style={styles.topSection}>
               <Image
                 source={require('../assets/logo.png')}
@@ -220,8 +221,8 @@ export default function LoginScreen() {
           style={[styles.input, userError && { borderColor: 'red', borderWidth: 1 }]}
           placeholder=""
           value={username}
-          onChangeText={text => { setUsername(text); if (userError && text) setUserError(false); }}
-          autoCapitalize="none"
+          onChangeText={text => { setUsername((text || '').toUpperCase()); if (userError && text) setUserError(false); }}
+          autoCapitalize="characters"
           allowFontScaling={false}
         />
 
@@ -268,7 +269,7 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        <View style={styles.bottomInfoContainer}>
+        <View style={[styles.bottomInfoContainer, { bottom: Math.max(20, insets.bottom + 12) }]}>
           {nombreEmpresa ? (
             <View style={styles.empresaContainer}>
               <Text style={styles.empresaText} allowFontScaling={false}>{nombreEmpresa}</Text>

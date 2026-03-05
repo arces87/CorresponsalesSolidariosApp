@@ -161,7 +161,7 @@ export default function ObligacionesScreen() {
     } catch (error) {
       console.error('Error al buscar cliente:', error);
       setError(error.message || 'Error al buscar el socio');
-      mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
+      mostrarError('Error', error.message || 'No se pudo encontrar el socio');
     } finally {
       setLoading(false);
     }
@@ -206,7 +206,7 @@ export default function ObligacionesScreen() {
       }
     } catch (error) {
       console.error('Error al buscar obligaciones:', error);
-      setError('No se pudieron cargar las obligaciones del cliente');
+      setError('No se pudieron cargar las obligaciones del socio');
     } finally {
       setCargandoObligaciones(false);
     }
@@ -299,7 +299,7 @@ export default function ObligacionesScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>BUSCAR CLIENTE</Text>
+              <Text style={styles.buttonText}>BUSCAR SOCIO</Text>
             )}
           </TouchableOpacity>
 
@@ -309,7 +309,7 @@ export default function ObligacionesScreen() {
 
           {cliente && (
             <View style={styles.resultContainer}>
-              <Text style={styles.resultTitle}>Datos del Cliente</Text>
+              <Text style={styles.resultTitle}>Datos del Socio</Text>
               <View style={styles.resultRow}>
                 <Text style={styles.resultLabel}>Nombres:</Text>
                 <Text style={styles.resultValue}>{cliente.nombres || 'No disponible'}</Text>
@@ -700,10 +700,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 15,
     overflow: 'hidden',
+    backgroundColor: '#fff',
   },
   picker: {
     height: 40,
     width: '100%',
+    color: '#2B4F8C',
   },
   tableContainer: {
     borderWidth: 1,

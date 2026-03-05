@@ -134,7 +134,7 @@ export default function MenuScreen() {
         </View>
         <ScrollView contentContainerStyle={[
           styles.menuContainer,
-          { paddingBottom: insets.bottom + 16, paddingHorizontal: Math.round(12 * hScale) }
+          { paddingBottom: Math.max(24, insets.bottom + 20), paddingHorizontal: Math.round(12 * hScale) }
         ]}>
         <View style={responsiveStyles.menuGrid}>
           {menuItems.map((item, idx) => (

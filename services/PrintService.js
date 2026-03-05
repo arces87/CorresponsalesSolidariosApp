@@ -875,14 +875,26 @@ class PrintService {
     comandos.push('────────────────────────────\n');
     const fechaHora = this.normalizarFechaHora(fecha);
     comandos.push(`Fecha y Hora: ${fechaHora}\n`);
-    if (identificacionCliente) comandos.push(`Identificación Socio: ${identificacionCliente}\n`);
-    if (cliente) comandos.push(`Nombre del Socio: ${this.truncarTexto(cliente, width - 20)}\n`);
-      if (numeroCuenta) comandos.push(`N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`);
-      if (codigoOp) comandos.push(`Código Operación: ${codigoOp}\n`);
-    if (observacion) comandos.push(`Observación: :${observacion}\n`);
+    if (identificacionCliente != null && String(identificacionCliente).trim() !== '') {
+      comandos.push(`Identificación Socio: ${String(identificacionCliente).trim()}\n`);
+    }
+    if (cliente != null && String(cliente).trim() !== '') {
+      comandos.push(`Nombre del Socio: ${this.truncarTexto(String(cliente).trim(), width - 20)}\n`);
+    }
+    if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
+      comandos.push(`N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`);
+    }
+    comandos.push(`Código Operación: ${codigoOp || 'N/A'}\n`);
+    if (observacion != null && String(observacion).trim() !== '') {
+      comandos.push(`Observación: :${observacion}\n`);
+    }
     comandos.push('────────────────────────────\n');
-    if (negocio) comandos.push(`NEGOCIO: ${negocio}\n`);
-    if (usuario) comandos.push(`USUARIO: ${usuario}\n`);
+    if (negocio != null && String(negocio).trim() !== '') {
+      comandos.push(`NEGOCIO: ${String(negocio).trim()}\n`);
+    }
+    if (usuario != null && String(usuario).trim() !== '') {
+      comandos.push(`USUARIO: ${String(usuario).trim()}\n`);
+    }
     if (estaticos.atencionAlSocio) comandos.push(`ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`);
     comandos.push('\x1D\x56\x00'); // Cortar papel
     return comandos;
@@ -925,14 +937,26 @@ class PrintService {
     contenido += '────────────────────────────\n';
     const fechaHora = this.normalizarFechaHora(fecha);
     contenido += `Fecha y Hora: ${fechaHora}\n`;
-    if (identificacionCliente) contenido += `Identificación Socio: ${identificacionCliente}\n`;
-    if (cliente) contenido += `Nombre del Socio: ${this.truncarTexto(cliente, width - 20)}\n`;
-    if (numeroCuenta) contenido += `N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`;
-    if (codigoOp) contenido += `Código Operación: ${codigoOp}\n`;
-    if (observacion) contenido += `Observación: :${observacion}\n`;
+    if (identificacionCliente != null && String(identificacionCliente).trim() !== '') {
+      contenido += `Identificación Socio: ${String(identificacionCliente).trim()}\n`;
+    }
+    if (cliente != null && String(cliente).trim() !== '') {
+      contenido += `Nombre del Socio: ${this.truncarTexto(String(cliente).trim(), width - 20)}\n`;
+    }
+    if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
+      contenido += `N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`;
+    }
+    contenido += `Código Operación: ${codigoOp || 'N/A'}\n`;
+    if (observacion != null && String(observacion).trim() !== '') {
+      contenido += `Observación: :${observacion}\n`;
+    }
     contenido += '────────────────────────────\n';
-    if (negocio) contenido += `NEGOCIO: ${negocio}\n`;
-    if (usuario) contenido += `USUARIO: ${usuario}\n`;
+    if (negocio != null && String(negocio).trim() !== '') {
+      contenido += `NEGOCIO: ${String(negocio).trim()}\n`;
+    }
+    if (usuario != null && String(usuario).trim() !== '') {
+      contenido += `USUARIO: ${String(usuario).trim()}\n`;
+    }
     if (estaticos.atencionAlSocio) contenido += `ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`;
     return contenido;
   }

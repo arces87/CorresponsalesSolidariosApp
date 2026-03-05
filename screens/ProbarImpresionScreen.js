@@ -70,7 +70,7 @@ export default function ProbarImpresionScreen() {
         comision: 5.0,
         total: 105.0,
         tipo: 'Prueba de Impresión',
-        cliente: 'Cliente de Prueba',
+        cliente: 'Socio de Prueba',
       };
 
       const exito = await PrintService.imprimirComprobante(comprobantePrueba);

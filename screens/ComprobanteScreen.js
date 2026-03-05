@@ -178,19 +178,19 @@ export default function ComprobanteScreen() {
               <Text style={styles.previewDetailLabel}>Fecha y Hora:</Text>
               <Text style={styles.previewDetailValue}>{fechaHora}</Text>
             </View>
-            {identificacionCliente ? (
+            {(identificacionCliente != null && String(identificacionCliente).trim() !== '') ? (
               <View style={styles.previewDetailRow}>
                 <Text style={styles.previewDetailLabel}>Identificación Socio:</Text>
                 <Text style={styles.previewDetailValue}>{identificacionCliente}</Text>
               </View>
             ) : null}
-            {nombreSocio ? (
+            {(nombreSocio != null && String(nombreSocio).trim() !== '') ? (
               <View style={styles.previewDetailRow}>
                 <Text style={styles.previewDetailLabel}>Nombre del Socio:</Text>
                 <Text style={styles.previewDetailValue} numberOfLines={2}>{nombreSocio}</Text>
               </View>
             ) : null}
-            {cuentaEnmascarada ? (
+            {(cuentaEnmascarada != null && String(cuentaEnmascarada).trim() !== '') ? (
               <View style={styles.previewDetailRow}>
                 <Text style={styles.previewDetailLabel}>N° de Cuenta:</Text>
                 <Text style={styles.previewDetailValue}>{cuentaEnmascarada}</Text>
@@ -200,17 +200,19 @@ export default function ComprobanteScreen() {
               <Text style={styles.previewDetailLabel}>Código Operación:</Text>
               <Text style={styles.previewDetailValue}>{codigoOp}</Text>
             </View>
-            {observacion ? (
+            {(observacion != null && String(observacion).trim() !== '') ? (
               <View style={styles.previewDetailRow}>
                 <Text style={styles.previewDetailLabel}>Observación:</Text>
                 <Text style={styles.previewDetailValue}>{observacionStr}</Text>
               </View>
             ) : null}
             <View style={styles.previewSeparator} />
-            {negocioStr ? (
+            {(negocioStr != null && String(negocioStr).trim() !== '') ? (
               <Text style={styles.previewPie}>NEGOCIO: {negocioStr}</Text>
             ) : null}
-            {usuario ? <Text style={styles.previewPie}>USUARIO: {usuario}</Text> : null}
+            {(usuario != null && String(usuario).trim() !== '') ? (
+              <Text style={styles.previewPie}>USUARIO: {usuario}</Text>
+            ) : null}
             {estaticos.atencionAlSocio ? (
               <Text style={styles.previewPie}>ATENCION AL SOCIO: {estaticos.atencionAlSocio}</Text>
             ) : null}

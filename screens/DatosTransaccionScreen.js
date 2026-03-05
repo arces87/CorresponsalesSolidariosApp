@@ -59,7 +59,7 @@ export default function DatosTransaccionScreen() {
         const disponible = cuentatransaccion.disponibleParaTransaccion?.toFixed(2);
                 
         if (Number(valorTransaccion) > Number(disponible)) {
-          mostrarAdvertencia('Fondos insuficientes', 'El valor a retirar es mayor al disponible en la cuenta del cliente');
+          mostrarAdvertencia('Fondos insuficientes', 'El valor a retirar es mayor al disponible en la cuenta del socio');
           setLoading(false);
           return;
         }
@@ -202,8 +202,8 @@ export default function DatosTransaccionScreen() {
         menuAccion === 'deposito');
     } catch (error) {
       console.error('Error al buscar cliente:', error);
-      setError(error.message || 'Error al buscar el cliente');
-      mostrarError('Error', error.message || 'No se pudo encontrar el cliente');
+      setError(error.message || 'Error al buscar el socio');
+      mostrarError('Error', error.message || 'No se pudo encontrar el socio');
     } finally {
       setLoading(false);
     }
@@ -241,7 +241,7 @@ export default function DatosTransaccionScreen() {
       }
     } catch (error) {
       console.error('Error al buscar cuentas:', error);
-      setError('No se pudieron cargar las cuentas del cliente');
+      setError('No se pudieron cargar las cuentas del socio');
     } finally {
       setCargandoCuentas(false);
     }
@@ -330,7 +330,7 @@ export default function DatosTransaccionScreen() {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>BUSCAR CLIENTE</Text>
+                  <Text style={styles.buttonText}>BUSCAR SOCIO</Text>
                 )}
               </TouchableOpacity>
 
@@ -340,7 +340,7 @@ export default function DatosTransaccionScreen() {
 
               {cliente && (
                 <View style={styles.resultContainer}>
-                  <Text style={styles.resultTitle}>Datos del Cliente</Text>
+                  <Text style={styles.resultTitle}>Datos del Socio</Text>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Nombre: </Text>
                     <Text style={styles.resultValue}>{cliente.nombres + cliente.apellidos || 'No disponible'}</Text>
@@ -734,9 +734,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 15,
     overflow: 'hidden',
+    backgroundColor: '#fff',
   },
   picker: {
     height: 40,
     width: '100%',
+    color: '#2B4F8C',
   },
 });
