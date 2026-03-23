@@ -179,7 +179,7 @@ export default function CrearCuentaScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -255,7 +255,7 @@ export default function CrearCuentaScreen() {
             {cliente && (
               <View style={styles.clientInfo}>
                 <Text style={styles.clientName}>
-                  {cliente.nombres} {cliente.apellidos}
+                  {[cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || 'No disponible'}
                 </Text>
                 <Text style={styles.clientId}>
                   {cliente.identificacion}

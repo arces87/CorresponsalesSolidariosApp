@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
@@ -28,6 +28,7 @@ export default function DatosTransaccionPrestamoScreen() {
   const [menuAccion, setMenuAccion] = useState('');
   const [valorMaximo, setValorMaximo] = useState(0);
   const [modalAdelantoVisible, setModalAdelantoVisible] = useState(false);
+  const scrollViewRef = useRef(null);
   const [listaCuotasAdelanto, setListaCuotasAdelanto] = useState([]);
   const [cuotasSeleccionadasAdelanto, setCuotasSeleccionadasAdelanto] = useState([]);
   const [cargandoCuotasAdelanto, setCargandoCuotasAdelanto] = useState(false);
@@ -62,7 +63,7 @@ export default function DatosTransaccionPrestamoScreen() {
         secuencialprestamo: prestamotransaccion.secuencial,
         codigoprestamo: prestamotransaccion.codigo,
         valor: valorStr,
-        nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
+        nombrecliente: [cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || '',
         identificacioncliente: cliente.identificacion
       };
 
@@ -307,8 +308,7 @@ export default function DatosTransaccionPrestamoScreen() {
   const handleLogout = async () => {
     setUserData(null);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('authToken');
+      await ApiService.clearSession();
     } catch (e) { }
     router.replace('/');
   };
@@ -323,7 +323,7 @@ export default function DatosTransaccionPrestamoScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -347,10 +347,13 @@ export default function DatosTransaccionPrestamoScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <ScrollView 
+        <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]}
           showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
         >
         <View style={globalStyles.card}>
           <Text style={styles.instruction}>
@@ -402,12 +405,8 @@ export default function DatosTransaccionPrestamoScreen() {
             <View style={styles.resultContainer}>
               <Text style={styles.resultTitle}>Datos del Socio</Text>
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Nombres:</Text>
-                <Text style={styles.resultValue}>{cliente.nombres || 'No disponible'}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Apellidos:</Text>
-                <Text style={styles.resultValue}>{cliente.apellidos || 'No disponible'}</Text>
+                <Text style={styles.resultLabel}>Nombre:</Text>
+                <Text style={styles.resultValue}>{[cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || 'No disponible'}</Text>
               </View>
               {cliente.telefono && (
                 <View style={styles.resultRow}>
@@ -494,6 +493,7 @@ export default function DatosTransaccionPrestamoScreen() {
                           placeholderTextColor="#999"
                           value={valorTransaccion}
                           editable={!esValorLimiteCero}
+                          onFocus={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                           onChangeText={(text) => {
                             if (esValorLimiteCero) return;
                             setValorDesdeAdelanto(false);
@@ -542,6 +542,7 @@ export default function DatosTransaccionPrestamoScreen() {
           )}
         </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
 
       <Modal

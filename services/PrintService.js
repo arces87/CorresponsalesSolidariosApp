@@ -235,9 +235,7 @@ try {
                   // Intentar primero con .call()
                   console.log('Intentando con .call()...');
                   result = await methodToCall.call(BluetoothManager);
-                  console.log('Éxito con .call(), resultado:', result);
-                  console.log('Tipo de resultado:', typeof result);
-                  alert(result);
+                  console.log('Éxito con .call(), resultado tipo:', typeof result);
                 } catch (callError) {
                   console.warn('Error con .call():', callError.message);
                   console.warn(`Error al llamar ${methodName} con .call(), intentando directamente:`, callError.message);
@@ -245,8 +243,7 @@ try {
                     // Si falla con .call(), intentar llamarlo directamente
                     console.log('Intentando directamente...');
                     result = await methodToCall();
-                    console.log('Éxito directamente, resultado:', result);
-                    console.log('Tipo de resultado:', typeof result);
+                    console.log('Éxito directamente, resultado tipo:', typeof result);
                   } catch (directError) {
                     console.error('Error directamente:', directError.message);
                     console.error(`Error al llamar ${methodName} directamente:`, directError);
@@ -346,29 +343,32 @@ try {
 }
 
 /**
- * Servicio para manejar la impresión de comprobantes a través de impresoras Bluetooth
- * Específicamente diseñado para la impresora térmica ADV7011
- * 
- * Características de la ADV7011:
- * - Tecnología: Térmica
- * - Velocidad: 90mm/s
- * - Conectividad: Bluetooth/USB
- * - Ancho de papel: 58mm (estándar para recibos)
- * 
- * NOTA: Este servicio requiere la instalación de una librería de impresión Bluetooth.
- * Librería recomendada: react-native-bluetooth-escpos-printer
- * 
- * Instalación:
- * npm install react-native-bluetooth-escpos-printer
- * 
- * Para usar con Expo, se necesita crear un módulo de desarrollo personalizado.
+ * Servicio para manejar la impresión de comprobantes a través de impresoras Bluetooth (ESC/POS).
+ *
+ * Parámetros de la impresora soportada:
+ * - Método: Línea térmica | Ancho impresión: 48mm | Papel: 57.5±0.5mm
+ * - Resolución: 384 línea (8mm, 203dpi) | Velocidad: 90mm/s
+ * - Interfaz: USB, Serial, Bluetooth | Interlineado: 3.75mm (ajustable por comando)
+ * - Fuente A: 32 caracteres/línea | Fuente B: 42 caracteres/línea | Comandos: ESC/POS
+ *
+ * NOTA: Requiere la librería react-native-bluetooth-escpos-printer y un build nativo (no Expo Go).
  */
 class PrintService {
-  // Configuración específica para ADV7011
+  /**
+   * Configuración según especificaciones de la impresora térmica:
+   * - Método: Línea térmica | Ancho impresión: 48mm | Papel: 57.5±0.5mm
+   * - Resolución: 384 línea (8mm, 203dpi) | Velocidad: 90mm/s
+   * - Fuente A: 32 caracteres/línea | Fuente B: 42 caracteres/línea | Tradicional: 16 caracteres/línea
+   * - Interlineado: 3.75mm (ajustable por comando ESC 3) | Comandos: ESC/POS
+   */
   static PRINTER_CONFIG = {
-    width: 48, // Ancho de caracteres (58mm papel = ~48 caracteres)
+    width: 32,       // Fuente A: 32 caracteres por línea (estándar para comprobantes)
+    widthFontB: 42,  // Fuente B: 42 caracteres por línea (opcional)
     encoding: 'UTF-8',
-    speed: 90, // mm/s
+    speed: 90,        // mm/s
+    paperWidthMm: 48,
+    resolutionDpi: 203,
+    lineSpacingMm: 3.75, // Interlineado en mm (se envía por comando ESC 3)
   };
 
   /** Datos estáticos del comprobante (institución, RUC, atención al socio) */
@@ -728,6 +728,8 @@ class PrintService {
             );
           }
         } else {
+          // Pequeña pausa para no invocar el módulo nativo Bluetooth en el mismo ciclo que el toque (evita cierres en algunos dispositivos)
+          await new Promise((r) => setTimeout(r, 300));
           // Buscar dispositivos disponibles
           const dispositivos = await this.buscarDispositivosBluetooth();
           
@@ -742,27 +744,15 @@ class PrintService {
             );
           }
 
-          // Si hay múltiples dispositivos, lanzar error con la lista para selección manual
-          if (dispositivos.length > 1) {
-            const error = new Error(
-              `Se encontraron ${dispositivos.length} dispositivos Bluetooth disponibles. Por favor, seleccione uno manualmente.`
-            );
-            error.dispositivos = dispositivos;
-            error.codigo = 'MULTIPLES_DISPOSITIVOS';
-            throw error;
-          }
-
-          // Si hay solo un dispositivo, conectarlo automáticamente
-          const dispositivoUnico = dispositivos[0];
-          try {
-            await this.conectarImpresora(dispositivoUnico.address || dispositivoUnico.id);
-          } catch (error) {
-            throw new Error(
-              `No se pudo conectar al dispositivo ${dispositivoUnico.name || 'seleccionado'}.\n\n` +
-              `Error: ${error.message}\n\n` +
-              'Por favor, verifique que el dispositivo esté encendido y emparejado.'
-            );
-          }
+          // Siempre mostrar selector (1 o más dispositivos), igual que en ProbarImpresionScreen.
+          // La conexión se hace solo al seleccionar el dispositivo, evitando cierre de app al conectar dentro de esta misma llamada.
+          const mensaje = dispositivos.length === 1
+            ? 'Se encontró 1 dispositivo. Selecciónelo para continuar.'
+            : `Se encontraron ${dispositivos.length} dispositivos Bluetooth disponibles. Por favor, seleccione uno.`;
+          const error = new Error(mensaje);
+          error.dispositivos = dispositivos;
+          error.codigo = 'MULTIPLES_DISPOSITIVOS';
+          throw error;
         }
       }
 
@@ -850,52 +840,67 @@ class PrintService {
     const width = this.PRINTER_CONFIG.width;
     const estaticos = this.COMPROBANTE_DATOS_ESTATICOS;
     const codigoOp = codigoOperacion || referencia;
+    // IMPORTANTE (ADV7011): evitar caracteres no-ASCII (p.ej. '─') porque algunas impresoras/codificaciones
+    // los renderizan como símbolos extraños (p.ej. '|') o cortan la impresión.
+    const separatorLine = '-'.repeat(width);
 
     // Inicializar impresora (ESC @)
     comandos.push('\x1B\x40'); // Reset printer
+    // Interlineado 3.75mm: ESC 3 n (n = 3.75/25.4*180 ≈ 27 unidades de 1/180")
+    comandos.push('\x1B\x33' + String.fromCharCode(27));
     comandos.push('\x1B\x61\x01'); // Center align
 
     // Encabezado (solo lo que muestra la imagen)
     if (estaticos.nombreEmpresa) {
       comandos.push('\x1D\x21\x01'); // Double height
-      comandos.push(this.centrarTexto(estaticos.nombreEmpresa.toUpperCase(), width) + '\n');
+      comandos.push(
+        this.centrarTexto(this.toAsciiTicket(estaticos.nombreEmpresa).toUpperCase(), width) + '\n'
+      );
       comandos.push('\x1D\x21\x00');
     }
     comandos.push(this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n');
-    if (estaticos.ruc) comandos.push(`RUC:${estaticos.ruc}\n`);    
-    comandos.push(this.centrarTexto('Operación realizada en su Asesor Virtual', width) + '\n\n');
+    if (estaticos.ruc) comandos.push(`RUC:${this.toAsciiTicket(estaticos.ruc)}\n`);    
+    comandos.push(this.centrarTexto('OPERACION REALIZADA EN SU ASESOR VIRTUAL', width) + '\n\n');
     comandos.push('\x1B\x61\x00'); // Left align
-    comandos.push('────────────────────────────\n');
+    comandos.push(separatorLine + '\n');
     comandos.push('\x1B\x61\x01');
-    comandos.push(this.centrarTexto((tipo || 'DEPOSITO EN CUENTA').toUpperCase(), width) + '\n');
+    const tipoAscii = this.toAsciiTicket(tipo || 'DEPOSITO EN CUENTA').toUpperCase() || 'DEPOSITO EN CUENTA';
+    comandos.push(this.centrarTexto(tipoAscii, width) + '\n');
     comandos.push('\x1D\x21\x11'); // Double size amount
     comandos.push(this.centrarTexto(`S/ ${parseFloat(monto).toFixed(2)}`, width) + '\n');
     comandos.push('\x1D\x21\x00');
     comandos.push('\x1B\x61\x00');
-    comandos.push('────────────────────────────\n');
+    comandos.push(separatorLine + '\n');
     const fechaHora = this.normalizarFechaHora(fecha);
-    comandos.push(`Fecha y Hora: ${fechaHora}\n`);
-    if (identificacionCliente != null && String(identificacionCliente).trim() !== '') {
-      comandos.push(`Identificación Socio: ${String(identificacionCliente).trim()}\n`);
+    comandos.push(`FECHA Y HORA: ${fechaHora}\n`);
+    const idSocio = this.toAsciiTicket(identificacionCliente);
+    if (idSocio !== '') {
+      comandos.push(`IDENTIFICACION SOCIO: ${idSocio}\n`);
     }
-    if (cliente != null && String(cliente).trim() !== '') {
-      comandos.push(`Nombre del Socio: ${this.truncarTexto(String(cliente).trim(), width - 20)}\n`);
+    const clienteAscii = this.toAsciiTicket(cliente);
+    if (clienteAscii !== '') {
+      comandos.push(`NOMBRE DEL SOCIO: ${this.truncarTexto(clienteAscii, width - 20)}\n`);
     }
     if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
-      comandos.push(`N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`);
+      comandos.push(`NRO DE CUENTA: ${this.toAsciiTicket(this.enmascararNumeroCuenta(numeroCuenta))}\n`);
     }
-    comandos.push(`Código Operación: ${codigoOp || 'N/A'}\n`);
-    if (observacion != null && String(observacion).trim() !== '') {
-      comandos.push(`Observación: :${observacion}\n`);
+    comandos.push(`CODIGO OPERACION: ${this.toAsciiTicket(codigoOp || 'N/A')}\n`);
+    const obsAscii = this.toAsciiTicket(observacion);
+    if (obsAscii !== '') {
+      comandos.push(`OBSERVACION: :${obsAscii}\n`);
     }
-    comandos.push('────────────────────────────\n');
-    if (negocio != null && String(negocio).trim() !== '') {
-      comandos.push(`NEGOCIO: ${String(negocio).trim()}\n`);
+    comandos.push(separatorLine + '\n');
+    const negocioAscii = this.toAsciiTicket(negocio);
+    if (negocioAscii !== '') {
+      comandos.push(`NEGOCIO: ${negocioAscii}\n`);
     }
-    if (usuario != null && String(usuario).trim() !== '') {
-      comandos.push(`USUARIO: ${String(usuario).trim()}\n`);
+    const usuarioAscii = this.toAsciiTicket(usuario);
+    if (usuarioAscii !== '') {
+      comandos.push(`USUARIO: ${usuarioAscii}\n`);
     }
-    if (estaticos.atencionAlSocio) comandos.push(`ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`);
+    if (estaticos.atencionAlSocio) {
+      comandos.push(`ATENCION AL SOCIO: ${this.toAsciiTicket(estaticos.atencionAlSocio)}\n`);
+    }
     comandos.push('\x1D\x56\x00'); // Cortar papel
     return comandos;
   }
@@ -925,39 +930,52 @@ class PrintService {
     const width = this.PRINTER_CONFIG.width;
     const estaticos = this.COMPROBANTE_DATOS_ESTATICOS;
     const codigoOp = codigoOperacion || referencia;
+    // Mantener consistente con ESC/POS (solo ASCII para evitar cortes en ADV7011)
+    const separatorLine = '-'.repeat(width);
     let contenido = '';
 
-    if (estaticos.nombreEmpresa) contenido += this.centrarTexto(estaticos.nombreEmpresa.toUpperCase(), width) + '\n';
-    if (estaticos.ruc) contenido += `RUC:${estaticos.ruc}\n`;
-    contenido += this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n';
-    contenido += this.centrarTexto('Operación realizada en su Asesor Virtual', width) + '\n\n';
-    contenido += '────────────────────────────\n';
-    contenido += this.centrarTexto((tipo || 'DEPOSITO EN CUENTA').toUpperCase(), width) + '\n';
-    contenido += this.centrarTexto(`S/ ${parseFloat(monto).toFixed(2)}`, width) + '\n';
-    contenido += '────────────────────────────\n';
-    const fechaHora = this.normalizarFechaHora(fecha);
-    contenido += `Fecha y Hora: ${fechaHora}\n`;
-    if (identificacionCliente != null && String(identificacionCliente).trim() !== '') {
-      contenido += `Identificación Socio: ${String(identificacionCliente).trim()}\n`;
+    if (estaticos.nombreEmpresa) {
+      contenido +=
+        this.centrarTexto(this.toAsciiTicket(estaticos.nombreEmpresa).toUpperCase(), width) + '\n';
     }
-    if (cliente != null && String(cliente).trim() !== '') {
-      contenido += `Nombre del Socio: ${this.truncarTexto(String(cliente).trim(), width - 20)}\n`;
+    if (estaticos.ruc) contenido += `RUC:${this.toAsciiTicket(estaticos.ruc)}\n`;
+    contenido += this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n';
+    contenido += this.centrarTexto('OPERACION REALIZADA EN SU ASESOR VIRTUAL', width) + '\n\n';
+    contenido += separatorLine + '\n';
+    const tipoPlano = this.toAsciiTicket(tipo || 'DEPOSITO EN CUENTA').toUpperCase() || 'DEPOSITO EN CUENTA';
+    contenido += this.centrarTexto(tipoPlano, width) + '\n';
+    contenido += this.centrarTexto(`S/ ${parseFloat(monto).toFixed(2)}`, width) + '\n';
+    contenido += separatorLine + '\n';
+    const fechaHora = this.normalizarFechaHora(fecha);
+    contenido += `FECHA Y HORA: ${fechaHora}\n`;
+    const idSocioP = this.toAsciiTicket(identificacionCliente);
+    if (idSocioP !== '') {
+      contenido += `IDENTIFICACION SOCIO: ${idSocioP}\n`;
+    }
+    const clienteP = this.toAsciiTicket(cliente);
+    if (clienteP !== '') {
+      contenido += `NOMBRE DEL SOCIO: ${this.truncarTexto(clienteP, width - 20)}\n`;
     }
     if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
-      contenido += `N° de Cuenta: ${this.enmascararNumeroCuenta(numeroCuenta)}\n`;
+      contenido += `NRO DE CUENTA: ${this.toAsciiTicket(this.enmascararNumeroCuenta(numeroCuenta))}\n`;
     }
-    contenido += `Código Operación: ${codigoOp || 'N/A'}\n`;
-    if (observacion != null && String(observacion).trim() !== '') {
-      contenido += `Observación: :${observacion}\n`;
+    contenido += `CODIGO OPERACION: ${this.toAsciiTicket(codigoOp || 'N/A')}\n`;
+    const obsP = this.toAsciiTicket(observacion);
+    if (obsP !== '') {
+      contenido += `OBSERVACION: :${obsP}\n`;
     }
-    contenido += '────────────────────────────\n';
-    if (negocio != null && String(negocio).trim() !== '') {
-      contenido += `NEGOCIO: ${String(negocio).trim()}\n`;
+    contenido += separatorLine + '\n';
+    const negocioP = this.toAsciiTicket(negocio);
+    if (negocioP !== '') {
+      contenido += `NEGOCIO: ${negocioP}\n`;
     }
-    if (usuario != null && String(usuario).trim() !== '') {
-      contenido += `USUARIO: ${String(usuario).trim()}\n`;
+    const usuarioP = this.toAsciiTicket(usuario);
+    if (usuarioP !== '') {
+      contenido += `USUARIO: ${usuarioP}\n`;
     }
-    if (estaticos.atencionAlSocio) contenido += `ATENCION AL SOCIO: ${estaticos.atencionAlSocio}\n`;
+    if (estaticos.atencionAlSocio) {
+      contenido += `ATENCION AL SOCIO: ${this.toAsciiTicket(estaticos.atencionAlSocio)}\n`;
+    }
     return contenido;
   }
 
@@ -1006,22 +1024,46 @@ class PrintService {
   }
 
   /**
+   * Convierte texto a ASCII imprimible para tickets ESC/POS (PC437 / sin tildes).
+   * Quita acentos, reemplaza símbolos problemáticos y elimina caracteres fuera de 0x20-0x7E.
+   * @param {unknown} str
+   * @returns {string}
+   */
+  static toAsciiTicket(str) {
+    if (str == null || str === undefined) return '';
+    let s = String(str);
+    s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    s = s.replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
+    s = s.replace(/[°º]/g, 'o').replace(/ª/g, 'a');
+    s = s.replace(/\n/g, ' ');
+    s = s.replace(/[^\x20-\x7E]/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+  }
+
+  /**
    * Normaliza fecha para comprobante: si viene solo fecha (sin hora), añade la hora actual.
    * @param {string} [fecha] - Fecha desde el API (puede ser solo fecha)
-   * @returns {string} Fecha y hora en formato locale (es-EC)
+   * @returns {string} Fecha y hora en formato locale (es-EC), solo ASCII para impresora
    */
   static normalizarFechaHora(fecha) {
     const ahora = new Date();
-    const conHora = () => ahora.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' });
+    const conHora = () =>
+      this.toAsciiTicket(ahora.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' }));
     if (!fecha) return conHora();
     const s = String(fecha).trim();
     if (!s) return conHora();
-    if (/:\d{2}/.test(s)) return s;
+    if (/:\d{2}/.test(s)) return this.toAsciiTicket(s);
     const d = new Date(s);
     if (!isNaN(d.getTime())) {
-      return d.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' });
+      return this.toAsciiTicket(d.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'medium' }));
     }
-    return s + ' ' + ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return this.toAsciiTicket(
+      s +
+        ' ' +
+        ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    );
   }
 
   /**

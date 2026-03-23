@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
 import { useCustomModal } from '../hooks/useCustomModal';
+import ApiService from '../services/ApiService';
 
 const menuItems = [
   { label: 'RETIRO', icon: require('../assets/ico-retiro.png'), route: '/datostransaccion', accion: 'retiro' },
@@ -83,8 +84,7 @@ export default function MenuScreen() {
   const handleLogout = async () => {
     setUserData(null);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('authToken');
+      await ApiService.clearSession();
     } catch (e) {}
     router.replace('/');
   }
@@ -120,14 +120,14 @@ export default function MenuScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       >
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
           <Image 
-            source={require('../assets/logo-horizontal-blanco.png')} 
+            source={require('../assets/logo.png')} 
             style={[styles.logoHorizontal, { width: logoWidth }]}
             resizeMode="contain" 
           />

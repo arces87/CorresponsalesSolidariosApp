@@ -391,8 +391,7 @@ const OtpVerificacionScreen = () => {
           idUnidad: userData?.recibo?.idUnidad,
           proveedorServicio: userData?.proveedorsevicio,
           titularCuenta: userData?.recibo?.titularCuenta,                 
-          identificacionTitular: userData?.identificaciontitular,
-          emailTitular: userData?.correotitular,
+          identificacionTitular: userData?.identificaciontitular,          
           secuencialCuentaCorresponsal: 0,
           jsonComision: "",
           codigoUsuario: userData?.usuario,
@@ -452,6 +451,11 @@ const OtpVerificacionScreen = () => {
         respuestaServicio.monto = (response.valor !== undefined && response.valor !== null) ? response.valor : (response?.datos?.valor ?? monto);
       }
 
+      const identificacionClienteParam =
+        userData?.identificacioncliente && String(userData?.identificacioncliente).trim() !== '00000000'
+          ? userData.identificacioncliente
+          : '';
+
       router.push({
         pathname: '/comprobante',
         params: {
@@ -467,7 +471,7 @@ const OtpVerificacionScreen = () => {
           observacion: userData?.observacionDeposito || '',
           usuario: userData?.usuario || '',
           negocio: userData?.nombreMostrar || '',
-          identificacionCliente: userData?.identificacioncliente || ''
+          identificacionCliente: identificacionClienteParam
         }
       });
 
@@ -482,7 +486,7 @@ const OtpVerificacionScreen = () => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -530,7 +534,9 @@ const OtpVerificacionScreen = () => {
                 Socio: {userData?.nombrecliente || userData?.recibo?.titularCuenta}
               </Text>
             )}
-            {(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion) != null && String(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || '').trim() !== '' && (
+            {(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion) != null
+              && String(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || '').trim() !== ''
+              && String(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || '').trim() !== '00000000' && (
               <Text style={styles.transactionType}>
                 Identificacion: {userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion}
               </Text>

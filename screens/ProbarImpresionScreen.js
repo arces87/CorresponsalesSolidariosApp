@@ -1,8 +1,13 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,13 +21,59 @@ import { useCustomModal } from '../hooks/useCustomModal';
 import PrintService from '../services/PrintService';
 import { colors, globalStyles } from '../styles/globalStyles';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 const LOG_TYPES = { info: 'info', success: 'success', error: 'error' };
+
+/** Escapa texto para HTML (PDF); igual criterio que ComprobanteScreen */
+function escapeHtml(text) {
+  if (text == null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Mismo shape que ComprobanteScreen → PrintService.imprimirComprobante (datos de prueba fijos).
+ * Así el ticket de prueba incluye todas las líneas que un comprobante real (identificación, cuenta, etc.).
+ */
+function createComprobantePrueba() {
+  const ref = 'PRUEBA-' + Date.now();
+  const fecha = new Date().toLocaleString('es-EC', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  return {
+    fecha,
+    referencia: ref,
+    monto: 100.0,
+    comision: 5.0,
+    total: 105.0,
+    tipo: 'PRUEBA DE IMPRESION',
+    cliente: 'SOCIO DE PRUEBA',
+    numeroCuenta: '1630071234567',
+    codigoOperacion: ref,
+    observacion: 'OBSERVACION DE PRUEBA',
+    usuario: 'USUARIO_PRUEBA',
+    negocio: 'NEGOCIO PRUEBA',
+    identificacionCliente: '1234567890',
+    deviceId: null,
+  };
+}
 
 export default function ProbarImpresionScreen() {
   const router = useRouter();
   const [probandoImpresion, setProbandoImpresion] = useState(false);
   const [logEntries, setLogEntries] = useState([]);
   const [dispositivosEncontrados, setDispositivosEncontrados] = useState([]);
+  const [modalErrorImpresionVisible, setModalErrorImpresionVisible] = useState(false);
+  const [guardandoPdf, setGuardandoPdf] = useState(false);
   const logScrollRef = React.useRef(null);
   const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
 
@@ -55,23 +106,7 @@ export default function ProbarImpresionScreen() {
       addLog('Conectado.', LOG_TYPES.success);
 
       addLog('Enviando comprobante de prueba...', LOG_TYPES.info);
-      const fechaActual = new Date().toLocaleString('es-EC', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-      const comprobantePrueba = {
-        fecha: fechaActual,
-        referencia: 'PRUEBA-' + Date.now(),
-        monto: 100.0,
-        comision: 5.0,
-        total: 105.0,
-        tipo: 'Prueba de Impresión',
-        cliente: 'Socio de Prueba',
-      };
+      const comprobantePrueba = createComprobantePrueba();
 
       const exito = await PrintService.imprimirComprobante(comprobantePrueba);
 
@@ -129,15 +164,132 @@ export default function ProbarImpresionScreen() {
         }
       }
 
-      mostrarError('Error en la prueba', error?.message || String(error));
       try {
         await PrintService.desconectarImpresora();
         addLog('Desconectado tras error.', LOG_TYPES.info);
       } catch (e) {
         console.error('Error al desconectar:', e);
       }
+      setModalErrorImpresionVisible(true);
     } finally {
       setProbandoImpresion(false);
+    }
+  };
+
+  const cerrarModalErrorImpresion = () => {
+    setModalErrorImpresionVisible(false);
+  };
+
+  /** Misma estructura y criterios (toAsciiTicket, etiquetas ASCII) que ComprobanteScreen.buildComprobanteHtml */
+  const buildComprobantePruebaHtml = () => {
+    const c = createComprobantePrueba();
+    const estaticos = PrintService.COMPROBANTE_DATOS_ESTATICOS;
+    const tipoAscii =
+      PrintService.toAsciiTicket(c.tipo || 'DEPOSITO EN CUENTA').toUpperCase() || 'DEPOSITO EN CUENTA';
+    const montoStr = `S/ ${(parseFloat(c.monto) || 0).toFixed(2)}`;
+    const fechaHora = PrintService.normalizarFechaHora(c.fecha);
+    const codigoOp = PrintService.toAsciiTicket(c.codigoOperacion || c.referencia || 'N/A');
+    const idSocio = PrintService.toAsciiTicket(c.identificacionCliente);
+    const nombreSocioAscii = PrintService.toAsciiTicket(c.cliente);
+    const cuentaEnmascarada = c.numeroCuenta
+      ? PrintService.toAsciiTicket(PrintService.enmascararNumeroCuenta(c.numeroCuenta))
+      : '';
+    const observacionStr = c.observacion ? `:${PrintService.toAsciiTicket(c.observacion)}` : '';
+    const negocioStr = PrintService.toAsciiTicket(c.negocio);
+    const usuarioAscii = PrintService.toAsciiTicket(c.usuario);
+    const nombreEmpresaDisplay = PrintService.toAsciiTicket(estaticos.nombreEmpresa).toUpperCase();
+    const rucDisplay = PrintService.toAsciiTicket(estaticos.ruc);
+    const atencionDisplay = PrintService.toAsciiTicket(estaticos.atencionAlSocio);
+
+    const rows = [];
+    if (nombreEmpresaDisplay) {
+      rows.push(
+        `<tr><td colspan="2" style="text-align:center;font-weight:bold;font-size:14px;">${escapeHtml(nombreEmpresaDisplay)}</td></tr>`
+      );
+    }
+    rows.push(`<tr><td colspan="2" style="text-align:center;font-size:11px;">REGULADO Y SUPERVISADO POR LA S.B.S</td></tr>`);
+    if (rucDisplay) {
+      rows.push(`<tr><td colspan="2" style="text-align:center;">RUC: ${escapeHtml(rucDisplay)}</td></tr>`);
+    }
+    rows.push(
+      `<tr><td colspan="2" style="text-align:center;font-size:11px;">OPERACION REALIZADA EN SU ASESOR VIRTUAL</td></tr>`
+    );
+    rows.push(`<tr><td colspan="2"><hr/></td></tr>`);
+    rows.push(`<tr><td colspan="2" style="text-align:center;font-weight:bold;">${escapeHtml(tipoAscii)}</td></tr>`);
+    rows.push(
+      `<tr><td colspan="2" style="text-align:center;font-size:16px;font-weight:bold;">${escapeHtml(montoStr)}</td></tr>`
+    );
+    rows.push(`<tr><td colspan="2"><hr/></td></tr>`);
+    rows.push(`<tr><td style="font-weight:bold;">FECHA Y HORA:</td><td>${escapeHtml(fechaHora)}</td></tr>`);
+    if (idSocio !== '') {
+      rows.push(
+        `<tr><td style="font-weight:bold;">IDENTIFICACION SOCIO:</td><td>${escapeHtml(idSocio)}</td></tr>`
+      );
+    }
+    if (nombreSocioAscii !== '') {
+      rows.push(
+        `<tr><td style="font-weight:bold;">NOMBRE DEL SOCIO:</td><td>${escapeHtml(nombreSocioAscii)}</td></tr>`
+      );
+    }
+    if (cuentaEnmascarada) {
+      rows.push(
+        `<tr><td style="font-weight:bold;">NRO DE CUENTA:</td><td>${escapeHtml(cuentaEnmascarada)}</td></tr>`
+      );
+    }
+    rows.push(
+      `<tr><td style="font-weight:bold;">CODIGO OPERACION:</td><td>${escapeHtml(codigoOp)}</td></tr>`
+    );
+    if (observacionStr !== '') {
+      rows.push(
+        `<tr><td style="font-weight:bold;">OBSERVACION:</td><td>${escapeHtml(observacionStr)}</td></tr>`
+      );
+    }
+    rows.push(`<tr><td colspan="2"><hr/></td></tr>`);
+    if (negocioStr !== '') {
+      rows.push(`<tr><td colspan="2">NEGOCIO: ${escapeHtml(negocioStr)}</td></tr>`);
+    }
+    if (usuarioAscii !== '') {
+      rows.push(`<tr><td colspan="2">USUARIO: ${escapeHtml(usuarioAscii)}</td></tr>`);
+    }
+    if (atencionDisplay) {
+      rows.push(`<tr><td colspan="2">ATENCION AL SOCIO: ${escapeHtml(atencionDisplay)}</td></tr>`);
+    }
+    return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/><title>Comprobante de prueba</title></head>
+<body style="font-family:sans-serif;font-size:12px;padding:20px;">
+<table width="100%" cellpadding="4" cellspacing="0">${rows.join('')}</table>
+</body>
+</html>`;
+  };
+
+  const handleGuardarPdf = async () => {
+    if (Platform.OS === 'web') {
+      mostrarInfo('No disponible', 'Guardar como PDF no está disponible en la versión web.');
+      cerrarModalErrorImpresion();
+      return;
+    }
+    setGuardandoPdf(true);
+    try {
+      const html = buildComprobantePruebaHtml();
+      const { uri } = await Print.printToFileAsync({ html, width: 300 });
+      const puedeCompartir = await Sharing.isAvailableAsync();
+      if (puedeCompartir) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Guardar comprobante de prueba como PDF',
+        });
+        mostrarExito('Comprobante guardado', 'Puede guardar o compartir el archivo PDF desde la opción que eligió.');
+      } else {
+        mostrarExito('Comprobante generado', 'El PDF se generó correctamente. Puede abrirlo desde la ubicación del archivo.');
+      }
+      cerrarModalErrorImpresion();
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      mostrarError('Error', err.message || 'No se pudo generar el archivo PDF.');
+    } finally {
+      setGuardandoPdf(false);
     }
   };
 
@@ -267,7 +419,7 @@ export default function ProbarImpresionScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
-        colors={[colors.primary, '#1a4a7a']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
       >
         <View style={globalStyles.header}>
@@ -379,6 +531,54 @@ export default function ProbarImpresionScreen() {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Modal: error de impresión + opción guardar como PDF */}
+      <Modal
+        visible={modalErrorImpresionVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cerrarModalErrorImpresion}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalErrorImpresionContainer}>
+            <LinearGradient
+              colors={['#325191', '#2a4580']}
+              style={styles.modalErrorImpresionGradient}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.modalErrorImpresionIcon}>
+                <MaterialIcons name="error-outline" size={48} color="#fff" />
+              </View>
+              <Text style={styles.modalErrorImpresionTitle}>Problema con la impresión</Text>
+              <Text style={styles.modalErrorImpresionMessage}>
+                Ocurrió un problema con la impresión. ¿Desea guardar el comprobante de prueba como archivo?
+              </Text>
+              <View style={styles.modalErrorImpresionButtons}>
+                <TouchableOpacity
+                  style={[styles.modalErrorImpresionBtn, styles.modalErrorImpresionBtnNo]}
+                  onPress={cerrarModalErrorImpresion}
+                  disabled={guardandoPdf}
+                >
+                  <Text style={styles.modalErrorImpresionBtnTextNo}>No</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalErrorImpresionBtn, styles.modalErrorImpresionBtnSi]}
+                  onPress={handleGuardarPdf}
+                  disabled={guardandoPdf}
+                >
+                  {guardandoPdf ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.modalErrorImpresionBtnTextSi}>Sí</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
+
       <CustomModal
         visible={modalVisible}
         title={modalData.title}
@@ -522,5 +722,74 @@ const styles = StyleSheet.create({
   logError: {
     color: colors.error,
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalErrorImpresionContainer: {
+    width: screenWidth * 0.85,
+    maxWidth: 360,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  modalErrorImpresionGradient: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalErrorImpresionIcon: {
+    marginBottom: 12,
+  },
+  modalErrorImpresionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalErrorImpresionMessage: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.95)',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalErrorImpresionButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'center',
+  },
+  modalErrorImpresionBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    minWidth: 100,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  modalErrorImpresionBtnNo: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  modalErrorImpresionBtnSi: {
+    backgroundColor: '#2BAC6B',
+  },
+  modalErrorImpresionBtnTextNo: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  modalErrorImpresionBtnTextSi: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

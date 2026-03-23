@@ -49,7 +49,7 @@ export default function ObligacionesScreen() {
         obligacionesTransaccion: obligacionesTransaccion,
         cuentasPorCobrar: cuentasPorCobrar,
         valor: totalSeleccionado,
-        nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
+        nombrecliente: [cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || '',
         identificacioncliente: cliente.identificacion,
         totalSeleccionado: totalSeleccionado
       };
@@ -215,8 +215,7 @@ export default function ObligacionesScreen() {
   const handleLogout = async () => {
     setUserData(null);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('authToken');
+      await ApiService.clearSession();
     } catch (e) { }
     router.replace('/');
   };
@@ -231,7 +230,7 @@ export default function ObligacionesScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -311,12 +310,8 @@ export default function ObligacionesScreen() {
             <View style={styles.resultContainer}>
               <Text style={styles.resultTitle}>Datos del Socio</Text>
               <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Nombres:</Text>
-                <Text style={styles.resultValue}>{cliente.nombres || 'No disponible'}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Apellidos:</Text>
-                <Text style={styles.resultValue}>{cliente.apellidos || 'No disponible'}</Text>
+                <Text style={styles.resultLabel}>Nombre:</Text>
+                <Text style={styles.resultValue}>{[cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || 'No disponible'}</Text>
               </View>
               {cliente.telefono && (
                 <View style={styles.resultRow}>

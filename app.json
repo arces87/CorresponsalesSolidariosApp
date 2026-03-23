@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CorresponsalesSolidariosApp",
-    "slug": "CorresponsalesSolidariosApp",
+    "name": "Kaypi Cooperativa",
+    "slug": "Kaypi Cooperativa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,8 +14,8 @@
     "android": {
       "package": "com.corresponsalessolidarios.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#152c52"
       },
       "edgeToEdgeEnabled": true
     },

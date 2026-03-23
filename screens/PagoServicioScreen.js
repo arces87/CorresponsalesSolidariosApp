@@ -18,7 +18,6 @@ export default function PagoServicioScreen() {
   const { modalVisible, modalData, mostrarError, mostrarAdvertencia, mostrarInfo, cerrarModal } = useCustomModal();
   const [numeroContrato, setNumeroContrato] = useState('');
   const [identificacionTitular, setIdentificacionTitular] = useState('');
-  const [correoTitular, setCorreoTitular] = useState('');
   const [loading, setLoading] = useState(false);
   const [valorTransaccion, setValorTransaccion] = useState('');
   const [menuLabel, setMenuLabel] = useState('');
@@ -44,7 +43,7 @@ export default function PagoServicioScreen() {
     }
 
     if (!numeroContrato) {
-      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el código de suministro y/o código de pago');
       return;
     }
 
@@ -93,17 +92,16 @@ export default function PagoServicioScreen() {
           recibo: reciboData || null,        
           referencia: numeroContrato,          
           valorafectado: parseFloat(valorDelRecibo),          
-          identificaciontitular: identificacionTitular || null,
-          correotitular: correoTitular || null,
-          identificacioncliente: identificacionTitular || null,
+          identificaciontitular: identificacionTitular || '00000000',
+          identificacioncliente: identificacionTitular || '00000000',
           nombrecliente: nombreTitular || null
         };
       });
 
       // Calcular comisión (puede ser específica para servicios o usar una genérica)
-      const comision = Number(userData?.comisiones?.pagoServicio?.administracionCanal || 0) +
-        Number(userData?.comisiones?.pagoServicio?.agente || 0) +
-        Number(userData?.comisiones?.pagoServicio?.cooperativa || 0);
+      const comision = Number(userData?.comisiones?.cobroServicios?.administracionCanal || 0) +
+        Number(userData?.comisiones?.cobroServicios?.agente || 0) +
+        Number(userData?.comisiones?.cobroServicios?.cooperativa || 0);
 
       router.push({
         pathname: '/otpverificacion',
@@ -113,8 +111,8 @@ export default function PagoServicioScreen() {
           total: Number(valorDelRecibo) + Number(comision),
           labelTransaccion: menuLabel,
           accionTransaccion: menuAccion,
-          otpCliente: userData?.jsonNegocio?.pagoServicio?.validarOtpCliente ?? false,
-          otpAgente: userData?.jsonNegocio?.pagoServicio?.validarOtpAgente ?? false
+          otpCliente: userData?.jsonNegocio?.cobroServicios?.validarOtpCliente ?? false,
+          otpAgente: userData?.jsonNegocio?.cobroServicios?.validarOtpAgente ?? false
         }
       });
     } catch (error) {
@@ -135,7 +133,7 @@ export default function PagoServicioScreen() {
     }
 
     if (!numeroContrato) {
-      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el código de suministro y/o código de pago');
       return;
     }
 
@@ -357,7 +355,7 @@ export default function PagoServicioScreen() {
     }
 
     if (!numeroContrato) {
-      mostrarError('Error', 'Por favor ingrese el número de contrato o cuenta');
+      mostrarError('Error', 'Por favor ingrese el código de suministro y/o código de pago');
       return;
     }
 
@@ -476,8 +474,7 @@ export default function PagoServicioScreen() {
   const handleLogout = async () => {
     setUserData(null);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('authToken');
+      await ApiService.clearSession();
     } catch (e) { }
     router.replace('/');
   };
@@ -492,7 +489,7 @@ export default function PagoServicioScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -569,12 +566,12 @@ export default function PagoServicioScreen() {
               {/* Información del servicio seleccionado */}
               {servicioSeleccionado && (
                       <View style={styles.serviceDetails}>
-                        <Text style={styles.label}>Número de Contrato/Cuenta:</Text>
+                        <Text style={styles.label}>Código de suministro y/o código de pago:</Text>
                         <TextInput
                           style={styles.input}
                           value={numeroContrato}
                           onChangeText={setNumeroContrato}
-                          placeholder="Ingrese el número de contrato o cuenta"
+                          placeholder="Ingrese el código de suministro y/o código de pago"
                           keyboardType="default"
                         />
 
@@ -585,16 +582,6 @@ export default function PagoServicioScreen() {
                     onChangeText={setIdentificacionTitular}
                     placeholder="Ingrese la identificación del titular"
                     keyboardType="default"
-                  />
-                  
-                  <Text style={styles.label}>Correo del Titular:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={correoTitular}
-                    onChangeText={setCorreoTitular}
-                    placeholder="Ingrese el correo del titular"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
                   />
                   
                   {/* Botón Consultar Recibos */}
@@ -631,11 +618,12 @@ export default function PagoServicioScreen() {
                             {recibos.length > 0 ? (
                               recibos.map((recibo, index) => {
                                 const reciboId = recibo.id || recibo.referencia || recibo.numero || recibo.codigo || `recibo-${index}`;
-                                const reciboLabel = recibo.descripcion || recibo.nombre || recibo.referencia || recibo.numero || `Recibo ${index + 1}`;
+                                const reciboLabel = recibo.descripcion || recibo.nombre || recibo.referencia || recibo.numero || `Recibo ${index + 1}`;                                
+                                const fechaVencimientoLabel = recibo.fechaVencimiento ? recibo.fechaVencimiento.split('T')[0] : null;
                                 return (
                                   <Picker.Item
                                     key={reciboId}
-                                    label={reciboLabel}
+                                    label={reciboLabel + (fechaVencimientoLabel ? ' - ' + fechaVencimientoLabel : '')}
                                     value={reciboId}
                                   />
                                 );
@@ -670,7 +658,7 @@ export default function PagoServicioScreen() {
                           monto = reciboInfo.valor;
                         }
                         
-                        const fechaVencimiento = reciboInfo?.fechaVencimiento || null;
+                        const fechaVencimiento = reciboInfo?.fechaVencimiento ? reciboInfo.fechaVencimiento.split('T')[0] : null;
                         
                         return (monto || fechaVencimiento) ? (
                           <View style={styles.reciboInfoContainer}>

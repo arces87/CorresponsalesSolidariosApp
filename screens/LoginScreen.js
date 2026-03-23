@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Device from 'expo-device';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
@@ -24,10 +23,11 @@ export default function LoginScreen() {
   const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
 
   // Función para guardar el token en AsyncStorage
-  const saveAuthToken = async (token) => {
+  const saveAuthToken = async (token,username) => {
     try {
       await AsyncStorage.setItem('authToken', token);
       console.log('Token guardado en AsyncStorage');
+      await AsyncStorage.setItem('userUsuario', username.toUpperCase());
     } catch (error) {
       console.error('Error al guardar el token:', error);
     }
@@ -98,7 +98,8 @@ export default function LoginScreen() {
       }
       
       // 1. Guardar el token en AsyncStorage
-      await saveAuthToken(response.token);
+      await saveAuthToken(response.token,username);
+      
 
       // 2. Guardar los datos del usuario en el contexto
       const userData = {
@@ -142,22 +143,13 @@ export default function LoginScreen() {
     let mac = '';
     let imei = '';
     try {
-      // Usar la misma lógica que ApiService.js para obtener mac e imei
-      try {
-        mac = Device.osInternalBuildId || Device.deviceName || Device.modelId || '';
-      } catch (error) {
-        console.warn('Error obteniendo Device ID:', error);
-        mac = '';
-      }
-      
-      if (!mac) {
-        mostrarAdvertencia('Device ID', 'No se pudo obtener un identificador de dispositivo en este entorno.');
+      if (!username || String(username).trim() === '') {
+        mostrarAdvertencia('Device ID', 'Ingrese el usuario para ver el identificador.');
         return;
       }
-      
-      // Usar la misma función getGUID que ApiService.js
+      mac = getGUID(String(username).trim().toUpperCase());
       imei = getGUID(mac);
-      
+
       mostrarInfo(
         'Device ID',
         `MAC (AndroidID): ${mac}\n\nIMEI (GUID): ${imei}`
@@ -201,7 +193,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#325191', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -280,7 +272,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/probarimpresion')}
             activeOpacity={0.7}
           >
-            <Text style={styles.versionText} allowFontScaling={false}>Versión 1.1</Text>
+            <Text style={styles.versionText} allowFontScaling={false}>Versión Test Print</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -322,7 +314,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logo: {
-    width: 120,
+    width: 360,
     height: 120,
   },
   loginBox: {

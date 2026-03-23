@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
@@ -27,6 +27,7 @@ export default function DatosTransaccionScreen() {
   const [observacionDeposito, setObservacionDeposito] = useState('');
   const [menuLabel, setMenuLabel] = useState('');
   const [menuAccion, setMenuAccion] = useState('');
+  const scrollViewRef = useRef(null);
 
   const handleContinuar = async () => {
     if (!valorTransaccion) {
@@ -42,7 +43,7 @@ export default function DatosTransaccionScreen() {
         secuencialcuenta: cuentatransaccion.secuencialCuenta,
         tipoRegistroFirma: cuentatransaccion.tipoRegistroFirma,
         valor: valorTransaccion,
-        nombrecliente: cliente.nombres + ' ' + cliente.apellidos,
+        nombrecliente: [cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || '',
         identificacioncliente: cliente.identificacion
       };
       if (menuAccion === 'deposito') {
@@ -100,7 +101,7 @@ export default function DatosTransaccionScreen() {
 
       if (menuAccion === 'deposito') {
         console.log('Depósito');
-        /* setLoading(true);
+        setLoading(true);
         const saldo = await ApiService.solicitudSaldoCuenta({
           usuario: userData?.usuario          
         });
@@ -109,7 +110,7 @@ export default function DatosTransaccionScreen() {
           mostrarAdvertencia('Fondos insuficientes', 'El corresponsal no cuenta con suficiente fondos en su cuenta para realizar la transacción.');
           setLoading(false);
           return;
-        } */
+        } 
         const comision = Number(userData?.comisiones?.deposito?.administracionCanal) +
           Number(userData?.comisiones?.deposito?.agente) +
           Number(userData?.comisiones?.deposito?.cooperativa);
@@ -250,8 +251,7 @@ export default function DatosTransaccionScreen() {
   const handleLogout = async () => {
     setUserData(null);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('authToken');
+      await ApiService.clearSession();
     } catch (e) { }
     router.replace('/');
   };
@@ -266,7 +266,7 @@ export default function DatosTransaccionScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#2B4F8C', '#2BAC6B']}
+        colors={['#325191', '#38599E']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -290,8 +290,8 @@ export default function DatosTransaccionScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+          <ScrollView ref={scrollViewRef} style={{ flex: 1, width: '100%' }} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: Math.max(20, insets.bottom + 16) }]} keyboardShouldPersistTaps="handled">
             <View style={globalStyles.card}>
               <Text style={styles.instruction}>
                 {'Seleccione los datos de la transacción'}
@@ -343,7 +343,7 @@ export default function DatosTransaccionScreen() {
                   <Text style={styles.resultTitle}>Datos del Socio</Text>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Nombre: </Text>
-                    <Text style={styles.resultValue}>{cliente.nombres + cliente.apellidos || 'No disponible'}</Text>
+                    <Text style={styles.resultValue}>{[cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || 'No disponible'}</Text>
                   </View>
                   {cliente.telefono && (
                     <View style={styles.resultRow}>
@@ -413,6 +413,7 @@ export default function DatosTransaccionScreen() {
                               placeholder="Ej: Jairo Maldonado Rivas"
                               placeholderTextColor="#999"
                               value={observacionDeposito}
+                              onFocus={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                               onChangeText={setObservacionDeposito}
                               multiline
                               numberOfLines={2}
@@ -431,6 +432,7 @@ export default function DatosTransaccionScreen() {
                               placeholder="0.00"
                               placeholderTextColor="#999"
                               value={valorTransaccion}
+                              onFocus={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                               onChangeText={(text) => {
                                 // Allow only numbers and one decimal point
                                 const regex = /^\d*\.?\d{0,2}$/;
