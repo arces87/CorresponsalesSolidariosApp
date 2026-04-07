@@ -2,16 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from './LocationService';
 import NetworkService from './NetworkService';
 
-// Función para generar un GUID tipo hash hexa padded
-function getGUID(mac) {
-  let hash = 0;
-  if (!mac) return '';
-  for (let i = 0; i < mac.length; i++) {
-    hash = ((hash << 5) - hash) + mac.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(16, '0');
-}
+/** MAC / IMEI persistidos en login (solo lectura aquí). */
+const DEVICE_MAC_STORAGE_KEY = 'appDeviceClientMacGuid';
+const DEVICE_IMEI_STORAGE_KEY = 'appDeviceClientImei';
 
 //LOCAL
 //const BASE_URL = 'http://localhost:5001/api/v1.0';
@@ -19,28 +12,19 @@ function getGUID(mac) {
 // APP
 const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
 
-// mac = getGUID(usuario normalizado); sin identificador de dispositivo
-function getMacForRequest(usuario) {
-  const u = (usuario != null && String(usuario).trim() !== '')
-    ? String(usuario).trim().toUpperCase()
-    : '';
-  return getGUID(u);
-}
-
 let mac = '';
 let imei = '';
 
-/** Actualiza mac e imei una vez por sesión (login o restaurar desde AsyncStorage). */
-function updateSessionMac(usuario) {
-  mac = getMacForRequest(usuario);
-  imei = getGUID(mac);
+/** Sincroniza mac/imei en memoria leyendo solo AsyncStorage. */
+async function updateSessionMac() {
+  await ApiService.getMacImeiForRequest();
 }
 
 class ApiService {
   static async obtenerDistribuidos({usuario}) {
     const url = `${BASE_URL}/Distribuidos/obtenerDistribuidos`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -138,7 +122,7 @@ class ApiService {
       const usuarioMayusculas = (usuario != null && usuario !== '')
         ? String(usuario).trim().toUpperCase()
         : usuario;
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuarioMayusculas);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const body = {
         usuario: usuarioMayusculas,
         contrasenia,
@@ -198,7 +182,7 @@ class ApiService {
       if (data.token) await AsyncStorage.setItem('authToken', data.token);
       if (usuarioMayusculas) {
         await AsyncStorage.setItem('userUsuario', usuarioMayusculas);
-        updateSessionMac(usuarioMayusculas);
+        await updateSessionMac();
       }
       return data;
     } catch (error) {
@@ -211,7 +195,7 @@ class ApiService {
     const token = await AsyncStorage.getItem('authToken');
     if (token) {
       const user = await AsyncStorage.getItem('userUsuario');
-      if (user && mac === getMacForRequest('')) updateSessionMac(user);
+      if (user && !mac) await updateSessionMac();
     }
     return token;
   }
@@ -221,10 +205,10 @@ class ApiService {
     return AsyncStorage.getItem('userUsuario');
   }
 
-  /** Limpia token y usuario y resetea mac/imei (llamar en logout). */
+  /** Limpia token y usuario; el UUID de dispositivo permanece en AsyncStorage. */
   static async clearSession() {
     await AsyncStorage.multiRemove(['authToken', 'userUsuario']);
-    updateSessionMac('');
+    await updateSessionMac();
   }
 
   /** IMEI de sesión (variable de módulo). */
@@ -232,17 +216,32 @@ class ApiService {
   /** MAC de sesión (variable de módulo). */
   static getSessionMac() { return mac; }
 
-  /** Calcula mac e imei para esta petición con el usuario (o el almacenado si no se pasa). */
-  static async getMacImeiForRequest(usuario) {    
-    const macVal = getMacForRequest(usuario);
-    const imeiVal = getGUID(macVal);
+  /** Limpia mac/imei en memoria. Las claves en AsyncStorage las borra LoginScreen (RESET UUID). */
+  static clearDeviceClientMacCache() {
+    mac = '';
+    imei = '';
+  }
+
+  /**
+   * Solo lectura: mac e imei tal como están guardados en AsyncStorage (LoginScreen).
+   * Si falta alguno, se devuelve cadena vacía en ese campo.
+   */
+  static async getMacImeiForRequest() {
+    const [rawMac, rawImei] = await Promise.all([
+      AsyncStorage.getItem(DEVICE_MAC_STORAGE_KEY),
+      AsyncStorage.getItem(DEVICE_IMEI_STORAGE_KEY),
+    ]);
+    const macVal = rawMac ? String(rawMac).trim() : '';
+    const imeiVal = rawImei ? String(rawImei).trim() : '';
+    mac = macVal;
+    imei = imeiVal;
     return { mac: macVal, imei: imeiVal };
   }
 
   static async solicitudActivacion({ usuario, contrasenia }) {
     const url = `${BASE_URL}/Usuario/solicitudActivacion`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -280,7 +279,7 @@ class ApiService {
     }
   }
   static async crearAlerta({ idTipo, descripcion, usuario }) {
-    const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+    const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
     const location = await LocationService.getLocation();
     const now = new Date();
     const fecha = now.toISOString();
@@ -328,7 +327,7 @@ class ApiService {
   }
 
   static async listarAlertas({ cantidadElementos = 5, usuario }) {
-    const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+    const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
     const location = await LocationService.getLocation();
     const body = {
       cantidadElementos,
@@ -380,7 +379,7 @@ class ApiService {
 static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuario, ParaCrearSocio = false }) {
     const url = `${BASE_URL}/Cliente/buscarCliente`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -452,7 +451,7 @@ static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuar
   }) {
     const url = `${BASE_URL}/Cuenta/buscarCuentas`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       
@@ -575,7 +574,7 @@ static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuar
   }) {
     const url = `${BASE_URL}/Transaccion/procesarRetiro`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -651,7 +650,7 @@ static async buscarCliente({ identificacion, secuencialTipoIdentificacion, usuar
   }) {
 const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -719,7 +718,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/Transaccion/listaTipoTransaccion`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -793,7 +792,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/Cuenta/solicitudSaldoCuenta`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -871,7 +870,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     paraAgente  } = {}) {
     const url = `${BASE_URL}/Usuario/solicitudOtp`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -972,7 +971,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
         throw new Error('El código OTP es requerido');
       }
 
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const location = await LocationService.getLocation();
       
       const body = {
@@ -1084,7 +1083,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Cuenta/buscarTipoCuenta`;
     
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1153,7 +1152,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Cuenta/crearCuenta`;
     
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1240,7 +1239,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/Prestamo/efectivizarPrestamos`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -1317,6 +1316,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
    *   @property {string} [estado] - Estado actual del préstamo
    *   @property {number} valorParaEstarAlDia - Cuota a abonar para estar al día
    *   @property {number} valorCancelarHastaCuotaCurso - Valor de siguiente cuota del siguiente mes
+   *   @property {number} valorParaCancelar - Valor total para cancelar el préstamo
    */
   static async listarPrestamos({
     identificacion = null,
@@ -1330,7 +1330,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Prestamo/listarPrestamos`;
     
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       
@@ -1391,9 +1391,19 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
       try {
         const data = responseText ? JSON.parse(responseText) : {};
         // Asegurar que siempre devolvamos un objeto con el array de préstamos
+        // y normalizar nombres de campos que vengan con mayúsculas desde el backend.
+        const informacionPrestamos = Array.isArray(data.informacionPrestamos)
+          ? data.informacionPrestamos.map((p) => ({
+              ...p,
+              // Algunos backends devuelven el campo con mayúscula inicial.
+              valorParaCancelar: p.valorParaCancelar ?? p.ValorParaCancelar,
+              numeroCuotaPendiente: p.numeroCuotaPendiente ?? p.NumeroCuotaPendiente
+            }))
+          : [];
+
         return {
-          informacionPrestamos: data.informacionPrestamos || [],
-          ...data // Incluir cualquier otro dato que venga en la respuesta
+          ...data, // Incluir cualquier otro dato que venga en la respuesta
+          informacionPrestamos
         };
       } catch (e) {
         console.error('Error al parsear respuesta JSON:', e);
@@ -1416,7 +1426,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Prestamo/informacionCuotas`;
 
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
 
@@ -1513,7 +1523,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Cliente/crearCliente`;
     
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(params.usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -1627,7 +1637,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
     const url = `${BASE_URL}/Historial/obtenerTransacciones`;
     
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       
@@ -1686,7 +1696,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   static async obtenerTiposTransacciones({ usuario }) {
     const url = `${BASE_URL}/Transaccion/listaTipoTransaccion`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1737,7 +1747,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   static async obtenerTransaccionesHojaColecta({ usuario }) {
     const url = `${BASE_URL}/HojaColecta/obtenerTransacciones`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1787,7 +1797,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   static async cuentasPorCobrar({ identificacion, usuario }) {
     const url = `${BASE_URL}/Cuenta/cuentasPorCobrar`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1856,7 +1866,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   static async procesaCuentasPorCobrar({ nombreCliente, identificacionCliente, cuentasPorCobrar, valorAfectado, usuario }) {
     const url = `${BASE_URL}/Cuenta/procesaCuentasPorCobrar`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       const token = await this.getAuthToken();
       if (!isConnected) {
@@ -1950,7 +1960,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/PagoServicios/obtenerServicios`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2019,7 +2029,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/obtenerProductos`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2098,7 +2108,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/consultaServicio`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2173,7 +2183,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/reversoFacilito`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2242,7 +2252,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/devuelveSimulacionPago`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2314,7 +2324,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/procesaPagoServicio`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2395,7 +2405,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/procesaReimprimirTransaccion`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2463,7 +2473,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/PagoServicios/procesaExtornarServicio`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2531,7 +2541,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/PagoServicios/devuelveCategoriasServicios`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2601,7 +2611,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/PagoServicios/devuelveDetalleDelServicio`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2670,7 +2680,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   } = {}) {
     const url = `${BASE_URL}/PagoServicios/devuelveServiciosPorCategoria`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');
@@ -2807,7 +2817,7 @@ const url = `${BASE_URL}/Transaccion/procesarDeposito`;
   }) {
     const url = `${BASE_URL}/Cuenta/aperturaCuenta`;
     try {
-      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest(usuario);
+      const { mac: macVal, imei: imeiVal } = await ApiService.getMacImeiForRequest();
       const isConnected = await NetworkService.checkConnection();
       if (!isConnected) {
         throw new Error('Sin conexión a internet');

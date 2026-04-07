@@ -1,13 +1,70 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
+// Si descomenta el bloque de nombre de empresa / versión, agregue useEffect al import:
+// import React, { useContext, useEffect, useState } from 'react';
 import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
 import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
+
+/** Mismas claves que DEVICE_MAC_STORAGE_KEY / DEVICE_IMEI_STORAGE_KEY en ApiService. */
+const APP_DEVICE_CLIENT_MAC_KEY = 'appDeviceClientMacGuid';
+const APP_DEVICE_CLIENT_IMEI_KEY = 'appDeviceClientImei';
+
+const LEGACY_DEVICE_MAC_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getGUID(mac) {
+  let hash = 0;
+  if (!mac) return '';
+  for (let i = 0; i < mac.length; i++) {
+    hash = ((hash << 5) - hash) + mac.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(16, '0');
+}
+
+function generateDeviceMacUuid() {
+  const seed = `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  return getGUID(seed);
+}
+
+/**
+ * Genera o recupera MAC + IMEI, los persiste en AsyncStorage y actualiza caché de ApiService.
+ */
+async function ensureDeviceMacAndImeiInStorage() {
+  let macVal = await AsyncStorage.getItem(APP_DEVICE_CLIENT_MAC_KEY);
+  macVal = macVal ? String(macVal).trim() : '';
+  let imeiVal = await AsyncStorage.getItem(APP_DEVICE_CLIENT_IMEI_KEY);
+  imeiVal = imeiVal ? String(imeiVal).trim() : '';
+
+  if (macVal && LEGACY_DEVICE_MAC_UUID_RE.test(macVal)) {
+    macVal = getGUID(macVal);
+    imeiVal = getGUID(macVal);
+    await AsyncStorage.multiSet([
+      [APP_DEVICE_CLIENT_MAC_KEY, macVal],
+      [APP_DEVICE_CLIENT_IMEI_KEY, imeiVal],
+    ]);
+  } else if (!macVal) {
+    macVal = generateDeviceMacUuid();
+    imeiVal = getGUID(macVal);
+    await AsyncStorage.multiSet([
+      [APP_DEVICE_CLIENT_MAC_KEY, macVal],
+      [APP_DEVICE_CLIENT_IMEI_KEY, imeiVal],
+    ]);
+  } else if (!imeiVal || imeiVal !== getGUID(macVal)) {
+    imeiVal = getGUID(macVal);
+    await AsyncStorage.setItem(APP_DEVICE_CLIENT_IMEI_KEY, imeiVal);
+  }
+
+  ApiService.clearDeviceClientMacCache();
+  await ApiService.getMacImeiForRequest();
+  return { mac: macVal, imei: imeiVal };
+}
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -19,7 +76,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setUserData, setCatalogos } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-  const [nombreEmpresa, setNombreEmpresa] = useState('');
+  // const [nombreEmpresa, setNombreEmpresa] = useState('');
   const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
 
   // Función para guardar el token en AsyncStorage
@@ -139,17 +196,10 @@ export default function LoginScreen() {
     }
   };
 
+  /** Genera/recupera MAC e IMEI en AsyncStorage (único lugar de creación) y muestra el modal. */
   const showDeviceInfo = async () => {
-    let mac = '';
-    let imei = '';
     try {
-      if (!username || String(username).trim() === '') {
-        mostrarAdvertencia('Device ID', 'Ingrese el usuario para ver el identificador.');
-        return;
-      }
-      mac = getGUID(String(username).trim().toUpperCase());
-      imei = getGUID(mac);
-
+      const { mac, imei } = await ensureDeviceMacAndImeiInStorage();
       mostrarInfo(
         'Device ID',
         `MAC (AndroidID): ${mac}\n\nIMEI (GUID): ${imei}`
@@ -159,19 +209,23 @@ export default function LoginScreen() {
     }
   };
 
-  // Función para generar un IMEI (GUID) tipo hash hexa padded a partir de la MAC, igual que en ApiService
-  // IMPORTANTE: Esta función debe ser idéntica a la de ApiService.js
-  function getGUID(mac) {
-    let hash = 0;
-    if (!mac) return '';
-    for (let i = 0; i < mac.length; i++) {
-      hash = ((hash << 5) - hash) + mac.charCodeAt(i);
-      hash |= 0;
+  const resetUUID = async () => {
+    try {
+      ApiService.clearDeviceClientMacCache();
+      await AsyncStorage.multiRemove([APP_DEVICE_CLIENT_MAC_KEY, APP_DEVICE_CLIENT_IMEI_KEY]);
+      await ApiService.clearSession();
+      setUserData(null);
+      setCatalogos(null);
+      mostrarExito(
+        'UUID y sesión reiniciados',
+        'Se cerró la sesión y se borró el identificador guardado. Pulse DEVICE ID para generar uno nuevo antes de operar. Ingrese usuario y clave para continuar.'
+      );
+    } catch (error) {
+      mostrarError('Error', error.message || String(error));
     }
-    return Math.abs(hash).toString(16).padStart(16, '0');
-  }
+  };
 
-  // Obtener nombre de la empresa al iniciar
+  /*
   useEffect(() => {
     const obtenerNombreEmpresa = async () => {
       try {
@@ -183,12 +237,11 @@ export default function LoginScreen() {
         }
       } catch (error) {
         console.error('Error al obtener nombre de empresa:', error);
-        // No mostrar error al usuario, simplemente no se mostrará el nombre
       }
     };
-
     obtenerNombreEmpresa();
   }, []);
+  */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -257,10 +310,14 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.bottomButton} onPress={showDeviceInfo}>
             <Text style={styles.bottomText} allowFontScaling={false}>DEVICE ID</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomButton} onPress={resetUUID} disabled={loading}>
+            <Text style={styles.bottomText} allowFontScaling={false}>RESET UUID</Text>
+          </TouchableOpacity>
         </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        {/*
         <View style={[styles.bottomInfoContainer, { bottom: Math.max(20, insets.bottom + 12) }]}>
           {nombreEmpresa ? (
             <View style={styles.empresaContainer}>
@@ -275,6 +332,7 @@ export default function LoginScreen() {
             <Text style={styles.versionText} allowFontScaling={false}>Versión Test Print</Text>
           </TouchableOpacity>
         </View>
+        */}
       </LinearGradient>
       <CustomModal
         visible={modalVisible}
@@ -398,6 +456,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textAlign: 'center',
   },
+  /*
   bottomInfoContainer: {
     position: 'absolute',
     bottom: 20,
@@ -430,4 +489,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
   },
+  */
 });

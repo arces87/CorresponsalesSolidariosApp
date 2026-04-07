@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
@@ -91,16 +91,28 @@ export default function CrearClienteScreen() {
         return /^[0-9]+$/.test(id);
     };
 
-    // Cargar tipos de identificación - siempre usar el primero (DOCUMENTO NACIONAL DE IDENTIDAD)
+    const tiposIdentificacionPersonaNatural = useMemo(
+        () =>
+            (catalogos?.tiposIdentificaciones || []).filter(
+                (t) => t?.paraPersonaNatural === true
+            ),
+        [catalogos?.tiposIdentificaciones]
+    );
+
+    // Tipos de identificación para persona natural: por defecto el primero; si el seleccionado deja de ser válido, corregir
     useEffect(() => {
-        if (!loadingCatalogos && catalogos?.tiposIdentificaciones?.length > 0) {
-            const firstTipoId = String(catalogos.tiposIdentificaciones[0].secuencial);
-            // Forzar siempre el primer tipo de identificación
-            setTipoIdentificacion(firstTipoId);
-        } else if (!loadingCatalogos && (!catalogos?.tiposIdentificaciones || catalogos.tiposIdentificaciones.length === 0)) {
+        if (!loadingCatalogos && tiposIdentificacionPersonaNatural.length > 0) {
+            setTipoIdentificacion((prev) => {
+                const valid = tiposIdentificacionPersonaNatural.some(
+                    (t) => String(t.secuencial) === String(prev)
+                );
+                if (valid) return prev;
+                return String(tiposIdentificacionPersonaNatural[0].secuencial);
+            });
+        } else if (!loadingCatalogos && tiposIdentificacionPersonaNatural.length === 0) {
             setTipoIdentificacion('');
         }
-    }, [catalogos, loadingCatalogos]);
+    }, [catalogos, loadingCatalogos, tiposIdentificacionPersonaNatural]);
 
     // Cargar país
     useEffect(() => {
@@ -210,8 +222,9 @@ export default function CrearClienteScreen() {
             setEstadoCivil('');
             setFechaNacimiento('');
             setFechaTemporal('');
-            setCamposHabilitados(true);
-            mostrarAdvertencia('Persona no encontrada', 'Complete los datos del formulario.');
+            setCamposHabilitados(false);
+            console.error('Error al buscar cliente:', error);            
+            mostrarError('Error', error.message || 'Error al buscar el socio');
         } finally {
             setBuscandoPersona(false);
         }
@@ -375,10 +388,12 @@ export default function CrearClienteScreen() {
                     params: {
                         monto: response.valorParaApertura.toString(),
                         comision: '0',
-                        total: response.valorParaApertura.toString(),
-                        referencia: aperturaResponse.documento || 'N/A',
+                        total: response.valorParaApertura.toString(),                        
                         fecha: fechaActual,
-                        identificacionCliente: identificacion || '',
+                        labelTransaccion: 'REGISTRO DE SOCIO',
+                        nombreSocio: nombres + ' ' + apellidopaterno + ' ' + apellidomaterno || '',
+                        codigoOperacion: aperturaResponse.documento || '',
+                        identificacionCliente: identificacion,
                         usuario: userData?.usuario || '',
                         negocio: userData?.nombreMostrar || ''
                     }
@@ -440,7 +455,7 @@ export default function CrearClienteScreen() {
                         <View style={styles.formGroup}>
                             <Text style={styles.label}>Tipo de Identificación *</Text>
                             <View style={styles.pickerContainer}>
-                                {loadingCatalogos || !catalogos?.tiposIdentificaciones?.length ? (
+                                {loadingCatalogos || tiposIdentificacionPersonaNatural.length === 0 ? (
                                     <View style={styles.loadingContainer}>
                                         <ActivityIndicator size="small" color="#2B4F8C" />
                                         <Text style={styles.loadingText}>
@@ -453,15 +468,14 @@ export default function CrearClienteScreen() {
                                         onValueChange={(itemValue) => itemValue != null && setTipoIdentificacion(itemValue)}
                                         style={styles.picker}
                                         dropdownIconColor="#2B4F8C"
-                                        enabled={camposHabilitados}
                                     >
-                                        {catalogos?.tiposIdentificaciones?.length > 0 && (
-                                            <Picker.Item 
-                                                key={catalogos.tiposIdentificaciones[0].secuencial} 
-                                                label={catalogos.tiposIdentificaciones[0].nombre} 
-                                                value={String(catalogos.tiposIdentificaciones[0].secuencial)} 
+                                        {tiposIdentificacionPersonaNatural.map((tipoItem) => (
+                                            <Picker.Item
+                                                key={tipoItem.secuencial}
+                                                label={tipoItem.nombre}
+                                                value={String(tipoItem.secuencial)}
                                             />
-                                        )}
+                                        ))}
                                     </Picker>
                                 )}
                             </View>

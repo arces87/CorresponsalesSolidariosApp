@@ -702,7 +702,8 @@ class PrintService {
         negocio: comprobante.negocio || '',
         usuario: comprobante.usuario || '',
         identificacionCliente: comprobante.identificacionCliente || '',
-        atencionAlSocio: comprobante.atencionAlSocio || ''
+        atencionAlSocio: comprobante.atencionAlSocio || '',
+        nombreServicio: comprobante.nombreServicio || ''
       };
 
       // Generar comandos ESC/POS para la impresora ADV7011
@@ -833,7 +834,8 @@ class PrintService {
       observacion,
       usuario,
       negocio,
-      identificacionCliente
+      identificacionCliente,
+      nombreServicio
     } = datos;
 
     const comandos = [];
@@ -860,7 +862,7 @@ class PrintService {
     }
     comandos.push(this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n');
     if (estaticos.ruc) comandos.push(`RUC:${this.toAsciiTicket(estaticos.ruc)}\n`);    
-    comandos.push(this.centrarTexto('OPERACION REALIZADA EN SU ASESOR VIRTUAL', width) + '\n\n');
+    comandos.push(this.centrarTexto('OPERACION REALIZADA EN SU KAYPI', width) + '\n\n');
     comandos.push('\x1B\x61\x00'); // Left align
     comandos.push(separatorLine + '\n');
     comandos.push('\x1B\x61\x01');
@@ -883,6 +885,10 @@ class PrintService {
     }
     if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
       comandos.push(`NRO DE CUENTA: ${this.toAsciiTicket(this.enmascararNumeroCuenta(numeroCuenta))}\n`);
+    }
+    const nombreSrvAscii = this.toAsciiTicket(nombreServicio);
+    if (nombreSrvAscii !== '') {
+      comandos.push(`SERVICIO: ${this.truncarTexto(nombreSrvAscii, width - 12)}\n`);
     }
     comandos.push(`CODIGO OPERACION: ${this.toAsciiTicket(codigoOp || 'N/A')}\n`);
     const obsAscii = this.toAsciiTicket(observacion);
@@ -924,7 +930,8 @@ class PrintService {
       observacion,
       usuario,
       negocio,
-      identificacionCliente
+      identificacionCliente,
+      nombreServicio
     } = datos;
 
     const width = this.PRINTER_CONFIG.width;
@@ -940,7 +947,7 @@ class PrintService {
     }
     if (estaticos.ruc) contenido += `RUC:${this.toAsciiTicket(estaticos.ruc)}\n`;
     contenido += this.centrarTexto('REGULADO Y SUPERVISADO POR LA S.B.S', width) + '\n';
-    contenido += this.centrarTexto('OPERACION REALIZADA EN SU ASESOR VIRTUAL', width) + '\n\n';
+    contenido += this.centrarTexto('OPERACION REALIZADA EN SU KAYPI', width) + '\n\n';
     contenido += separatorLine + '\n';
     const tipoPlano = this.toAsciiTicket(tipo || 'DEPOSITO EN CUENTA').toUpperCase() || 'DEPOSITO EN CUENTA';
     contenido += this.centrarTexto(tipoPlano, width) + '\n';
@@ -958,6 +965,10 @@ class PrintService {
     }
     if (numeroCuenta != null && String(numeroCuenta).trim() !== '') {
       contenido += `NRO DE CUENTA: ${this.toAsciiTicket(this.enmascararNumeroCuenta(numeroCuenta))}\n`;
+    }
+    const nombreSrvP = this.toAsciiTicket(nombreServicio);
+    if (nombreSrvP !== '') {
+      contenido += `SERVICIO: ${this.truncarTexto(nombreSrvP, width - 12)}\n`;
     }
     contenido += `CODIGO OPERACION: ${this.toAsciiTicket(codigoOp || 'N/A')}\n`;
     const obsP = this.toAsciiTicket(observacion);

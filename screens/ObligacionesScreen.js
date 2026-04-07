@@ -79,11 +79,7 @@ export default function ObligacionesScreen() {
           comision: comision,
           total: totalSeleccionado + Number(comision),
           labelTransaccion: menuLabel,
-          accionTransaccion: menuAccion,
-          identificacionCliente: cliente.identificacion,
-          cuentasPorCobrar: cuentasPorCobrar,
-          valorAfectado: totalSeleccionado,
-          usuario: userData?.usuario,
+          accionTransaccion: menuAccion,          
           otpCliente: false, // TODO: Definir cuando esté disponible
           otpAgente: false // TODO: Definir cuando esté disponible
         }

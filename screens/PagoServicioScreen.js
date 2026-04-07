@@ -91,8 +91,7 @@ export default function PagoServicioScreen() {
           proveedorsevicio: proveedorServicio,
           recibo: reciboData || null,        
           referencia: numeroContrato,          
-          valorafectado: parseFloat(valorDelRecibo),          
-          identificaciontitular: identificacionTitular || '00000000',
+          valorafectado: parseFloat(valorDelRecibo),   
           identificacioncliente: identificacionTitular || '00000000',
           nombrecliente: nombreTitular || null
         };
@@ -111,6 +110,7 @@ export default function PagoServicioScreen() {
           total: Number(valorDelRecibo) + Number(comision),
           labelTransaccion: menuLabel,
           accionTransaccion: menuAccion,
+          //nombreServicio: proveedorServicio != null ? String(proveedorServicio) : '',
           otpCliente: userData?.jsonNegocio?.cobroServicios?.validarOtpCliente ?? false,
           otpAgente: userData?.jsonNegocio?.cobroServicios?.validarOtpAgente ?? false
         }

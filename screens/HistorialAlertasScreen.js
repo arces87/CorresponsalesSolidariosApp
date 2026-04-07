@@ -1,14 +1,10 @@
-import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import ApiService from '../services/ApiService';
 
 const HistorialAlertasScreen = () => {
-  const router = useRouter();
   const { userData } = useContext(AuthContext);
-  const insets = useSafeAreaInsets();
   const [alertas, setAlertas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,11 +33,59 @@ const HistorialAlertasScreen = () => {
     setRefreshing(false);
   };
 
+  /** API listarAlertas: nombreEstado, idEstado */
+  const textoEstado = (item) => {
+    const nombre = item?.nombreEstado;
+    if (nombre != null && String(nombre).trim() !== '') return String(nombre);
+    const id = item?.idEstado;
+    if (id != null && String(id).trim() !== '') return String(id);
+    return '—';
+  };
+
+  /** API: comentario (string) */
+  const textoComentario = (item) => {
+    const v = item?.comentario;
+    if (v != null && String(v).trim() !== '') return String(v);
+    return '—';
+  };
+
+  /** Día/mes/año desde `fecha`; hora desde el campo `hora` (texto del API). */
+  const textoFechaHora = (item) => {
+    let parteFecha = '';
+    if (item?.fecha) {
+      try {
+        const d = new Date(item.fecha);
+        parteFecha = isNaN(d.getTime())
+          ? String(item.fecha)
+          : d.toLocaleDateString('es-EC', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            });
+      } catch {
+        parteFecha = String(item.fecha);
+      }
+    }
+    const h = item?.hora != null ? String(item.hora).trim() : '';
+    if (parteFecha && h) return `${parteFecha} ${h}`;
+    if (parteFecha) return parteFecha;
+    if (h) return h;
+    return '—';
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.itemCard}>
-      <Text style={styles.tipo}>{item.idTipo || 'Tipo desconocido'}</Text>
-      <Text style={styles.descripcion}>{item.descripcion}</Text>
-      <Text style={styles.fecha}>{item.fecha}</Text>
+      <Text style={styles.tipo}>{item.nombreTipo || item.idTipo || 'Tipo desconocido'}</Text>
+      <Text style={styles.descripcion}>{item.descripcion ?? ''}</Text>
+      <View style={styles.rowMeta}>
+        <Text style={styles.metaLabel}>Estado</Text>
+        <Text style={styles.metaValue}>{textoEstado(item)}</Text>
+      </View>
+      <View style={styles.rowMeta}>
+        <Text style={styles.metaLabel}>Comentarios</Text>
+        <Text style={styles.comentarios}>{textoComentario(item)}</Text>
+      </View>
+      <Text style={styles.fecha}>{textoFechaHora(item)}</Text>
     </View>
   );
 
@@ -59,7 +103,7 @@ const HistorialAlertasScreen = () => {
       <View style={styles.card}>
         <FlatList
           data={alertas}
-          keyExtractor={(item, idx) => item.idAlerta?.toString() || idx.toString()}
+          keyExtractor={(item, idx) => (item.id != null ? String(item.id) : idx.toString())}
           renderItem={renderItem}
           refreshControl={
             <RefreshControl 
@@ -80,8 +124,6 @@ const HistorialAlertasScreen = () => {
     </View>
   );
 };
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -133,6 +175,24 @@ const styles = StyleSheet.create({
     color: '#444',
     fontSize: 14,
     marginBottom: 8,
+  },
+  rowMeta: {
+    marginBottom: 8,
+  },
+  metaLabel: {
+    color: '#2B4F8C',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  metaValue: {
+    color: '#333',
+    fontSize: 14,
+  },
+  comentarios: {
+    color: '#333',
+    fontSize: 14,
+    lineHeight: 20,
   },
   fecha: {
     color: '#666',

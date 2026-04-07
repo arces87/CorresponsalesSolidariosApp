@@ -44,7 +44,8 @@ export default function DatosTransaccionScreen() {
         tipoRegistroFirma: cuentatransaccion.tipoRegistroFirma,
         valor: valorTransaccion,
         nombrecliente: [cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || '',
-        identificacioncliente: cliente.identificacion
+        identificacioncliente: cliente.identificacion,
+        tipoIdentificacioncliente: cliente.secuencialTipoIdentificacion
       };
       if (menuAccion === 'deposito') {
         transaccionData.observacionDeposito = (observacionDeposito || '').trim();

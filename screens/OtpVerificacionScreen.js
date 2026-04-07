@@ -17,11 +17,23 @@ import { AuthContext } from '../context/AuthContext';
 import { useCustomModal } from '../hooks/useCustomModal';
 import ApiService from '../services/ApiService';
 import { globalStyles } from '../styles/globalStyles';
+import { clearOperacionEnCurso } from '../utils/clearOperacionEnCurso';
 
 const OtpVerificacionScreen = () => {
   const router = useRouter();
-  const { monto, comision, total, labelTransaccion, otpCliente, otpAgente, accionTransaccion } = useLocalSearchParams();
-  const { userData } = useContext(AuthContext);
+  const { monto, comision, total, labelTransaccion, otpCliente, otpAgente, accionTransaccion, nombreServicio } = useLocalSearchParams();
+  const { userData, setUserData } = useContext(AuthContext);
+
+  /** Nombre del servicio (pago de servicios): param de ruta o contexto */
+  const nombreServicioPagoDisplay =
+    accionTransaccion === 'pago' || accionTransaccion === 'pagoServicio'
+      ? (nombreServicio != null && String(nombreServicio).trim() !== ''
+          ? String(nombreServicio).trim()
+          : userData?.proveedorsevicio != null && String(userData.proveedorsevicio).trim() !== ''
+            ? String(userData.proveedorsevicio).trim()
+            : '')
+      : '';
+
   const insets = useSafeAreaInsets();
   const { modalVisible, modalData, mostrarAdvertencia, mostrarError, mostrarExito, cerrarModal } = useCustomModal();
   // Obtener configuración de validación de OTP de la operación
@@ -31,6 +43,10 @@ const OtpVerificacionScreen = () => {
   const [otpCorresponsal, setOtpCorresponsal] = useState(['', '', '', '', '', '']);
   const otpInputs = useRef([]);
   const otpCorresponsalInputs = useRef([]);
+  /** Evita doble envío: se activa de forma síncrona antes de cualquier await (isLoading llega tarde al UI). */
+  const verificacionEnProcesoRef = useRef(false);
+  /** Una sola ronda de solicitud OTP al entrar (1 o 2 llamadas si validan cliente y agente); no repetir al cambiar userData tras la transacción. */
+  const otpSolicitudInicialHechaRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(userData?.tiempootp);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -66,66 +82,84 @@ const OtpVerificacionScreen = () => {
     }
   }, [countdown]);
   
-    useEffect(() => {
-      console.log('userData', userData);
-      const solicitarOtps = async () => {
-        if(validarOtpAgente){
-          try {
-            const result = await ApiService.solicitarOtp({
-              usuario: userData?.usuario,
-              identificacion: userData?.identificacion,
-              secuencialTipoIdentificacion: userData?.secuencialTipoIdentificacion,
-              paraAgente: true, 
-            });          
-            if (result.otpGenerado) {
-              if (result.notificationEmailError) {
-                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
-                console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
-                setTimeout(() => router.back(), 2000);
-              }
-              if (result.notificationSMSError) {
-                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
-                console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
-                setTimeout(() => router.back(), 2000);
-              }
+  useEffect(() => {
+    if (otpSolicitudInicialHechaRef.current) {
+      return;
+    }
+
+    const usuarioOk = userData?.usuario != null && String(userData.usuario).trim() !== '';
+    const datosListosParaAgente =
+      !validarOtpAgente ||
+      (usuarioOk &&
+        userData?.identificacion != null &&
+        String(userData.identificacion).trim() !== '');
+    const datosListosParaCliente =
+      !validarOtpCliente ||
+      (usuarioOk &&
+        userData?.identificacioncliente != null &&
+        String(userData.identificacioncliente).trim() !== '');
+
+    if (!datosListosParaAgente || !datosListosParaCliente) {
+      return;
+    }
+
+    otpSolicitudInicialHechaRef.current = true;
+
+    console.log('userData', userData);
+    const solicitarOtps = async () => {
+      if (validarOtpAgente) {
+        try {
+          const result = await ApiService.solicitarOtp({
+            usuario: userData?.usuario,
+            identificacion: userData?.identificacion,
+            secuencialTipoIdentificacion: userData?.secuencialTipoIdentificacion,
+            paraAgente: true,
+          });
+          if (result.otpGenerado) {
+            if (result.notificationEmailError) {
+              mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
+              console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
             }
-          } catch (error) {
-            mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
-            console.error('Error al solicitar OTP:', error.message);
-            setTimeout(() => router.back(), 2000);
-          }
-        }      
-        if(validarOtpCliente){
-          try {
-            const result = await ApiService.solicitarOtp({
-              usuario: userData?.usuario,
-              identificacion: userData?.identificacioncliente,
-              secuencialTipoIdentificacion: userData?.secuencialTipoIdentificacion,
-              paraAgente: false, 
-            });
-            console.log('Result:', result);
-            if (result.otpGenerado) {
-              if (result.notificationEmailError) {
-                mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
-                console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
-                setTimeout(() => router.back(), 2000);
-              }
-              if (result.notificationSMSError) {
-                mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
-                console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
-                setTimeout(() => router.back(), 2000);
-              }
+            if (result.notificationSMSError) {
+              mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
+              console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
             }
-          } catch (error) {
-            mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
-            console.error('Error al solicitar OTP:', error.message);
-            setTimeout(() => router.back(), 2000);
           }
+        } catch (error) {
+          mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
+          console.error('Error al solicitar OTP:', error.message);
+          setTimeout(() => router.back(), 2000);
         }
-      };
-  
-      solicitarOtps();
-    }, [validarOtpAgente, validarOtpCliente, userData, router]);
+      }
+      if (validarOtpCliente) {
+        try {
+          const result = await ApiService.solicitarOtp({
+            usuario: userData?.usuario,
+            identificacion: userData?.identificacioncliente,
+            secuencialTipoIdentificacion: userData?.secuencialTipoIdentificacion,
+            paraAgente: false,
+          });
+          console.log('Result:', result);
+          if (result.otpGenerado) {
+            if (result.notificationEmailError) {
+              mostrarError('Error enviando correo', result.notificationEmailErrorMensaje);
+              console.warn('Error enviando correo:', result.notificationEmailErrorMensaje);
+            }
+            if (result.notificationSMSError) {
+              mostrarError('Error enviando SMS', result.notificationSMSErrorMensaje);
+              console.warn('Error enviando SMS:', result.notificationSMSErrorMensaje);
+            }
+          }
+        } catch (error) {
+          mostrarError('Error', 'Error al solicitar OTP: ' + error.message);
+          console.error('Error al solicitar OTP:', error.message);
+          setTimeout(() => router.back(), 2000);
+        }
+      }
+    };
+
+    solicitarOtps();
+  }, [validarOtpAgente, validarOtpCliente, userData, router]);
   
   const handleOtpChange = (value, index, isCorresponsal = false) => {
     if (isCorresponsal) {
@@ -254,6 +288,11 @@ const OtpVerificacionScreen = () => {
       return;
     }
 
+    if (verificacionEnProcesoRef.current) {
+      return;
+    }
+    verificacionEnProcesoRef.current = true;
+
     try {
       setIsLoading(true);
       
@@ -354,12 +393,13 @@ const OtpVerificacionScreen = () => {
         
         // Concatenar todos los documentos separados por coma
         const documentos = response.pagoCuentaResponse.map(pago => pago.documento).join(', ');
+        const detalles = response.pagoCuentaResponse.map(pago => pago.detalle).join(', ');
         
         // Sumar todos los valores para el monto total
         const valorTotal = response.pagoCuentaResponse.reduce((sum, pago) => sum + (pago.valor || 0), 0);
         
         respuestaServicio.fecha = response.fecha;
-        respuestaServicio.numeroCuenta = response.pagoCuentaResponse[0].detalle; // Usar el detalle del primer pago
+        respuestaServicio.numeroCuenta = userData?.obligacionesSeleccionadas.map(String).join(', '); 
         respuestaServicio.numeroTransaccion = documentos; // Todos los documentos separados por coma
         respuestaServicio.monto = valorTotal || monto; // Suma de todos los valores o el monto original
       }
@@ -391,7 +431,7 @@ const OtpVerificacionScreen = () => {
           idUnidad: userData?.recibo?.idUnidad,
           proveedorServicio: userData?.proveedorsevicio,
           titularCuenta: userData?.recibo?.titularCuenta,                 
-          identificacionTitular: userData?.identificaciontitular,          
+          identificacionTitular: userData?.identificacioncliente,          
           secuencialCuentaCorresponsal: 0,
           jsonComision: "",
           codigoUsuario: userData?.usuario,
@@ -446,15 +486,17 @@ const OtpVerificacionScreen = () => {
         // Respuesta esperada (Swagger): { codigoEstado, mensaje, datos, numeroDocumento, fecha, valor, saldoCuentaCorresponsal }
         // ApiService ya lanza Error cuando codigoEstado != 0 (si viene mensaje), pero aquí normalizamos para el comprobante.
         respuestaServicio.fecha = response.fecha || new Date().toISOString();
-        respuestaServicio.numeroCuenta = response?.datos?.id;
+        respuestaServicio.numeroCuenta = userData?.referencia || '';
         respuestaServicio.numeroTransaccion = response.numeroDocumento || response?.datos?.numeroDocumento || response?.datos?.numeroTransaccion || response.id;
         respuestaServicio.monto = (response.valor !== undefined && response.valor !== null) ? response.valor : (response?.datos?.valor ?? monto);
       }
 
-      const identificacionClienteParam =
-        userData?.identificacioncliente && String(userData?.identificacioncliente).trim() !== '00000000'
-          ? userData.identificacioncliente
-          : '';
+      const nombreServicioComprobante =
+        (nombreServicio != null && String(nombreServicio).trim() !== '')
+          ? String(nombreServicio).trim()
+          : (userData?.proveedorsevicio != null && String(userData.proveedorsevicio).trim() !== '')
+            ? String(userData.proveedorsevicio).trim()
+            : '';
 
       router.push({
         pathname: '/comprobante',
@@ -462,21 +504,24 @@ const OtpVerificacionScreen = () => {
           fecha: respuestaServicio.fecha,
           monto: respuestaServicio.monto,
           comision: comision,
-          total: total,
-          referencia: respuestaServicio.numeroTransaccion,
+          total: total,         
           labelTransaccion: labelTransaccion || '',
+          accionTransaccion: accionTransaccion || '',
           nombreSocio: userData?.nombrecliente || '',
-          numeroCuenta: respuestaServicio.numeroCuenta || userData?.numerocuentacliente || '',
+          numeroCuenta: respuestaServicio.numeroCuenta || '',
           codigoOperacion: respuestaServicio.numeroTransaccion || '',
           observacion: userData?.observacionDeposito || '',
           usuario: userData?.usuario || '',
           negocio: userData?.nombreMostrar || '',
-          identificacionCliente: identificacionClienteParam
+          identificacionCliente: userData?.identificacioncliente || '',
+          ...(nombreServicioComprobante !== '' ? { nombreServicio: nombreServicioComprobante } : {})
         }
       });
+      setUserData((prev) => clearOperacionEnCurso(prev));
 
     } catch (error) {
       console.error('Error al verificar OTP:', error);
+      verificacionEnProcesoRef.current = false;
       mostrarError('Operación falló', error.message || 'Error al verificar el código OTP');
     } finally {
       setIsLoading(false);
@@ -505,7 +550,10 @@ const OtpVerificacionScreen = () => {
             </View>
             <TouchableOpacity
               style={globalStyles.menuButton}
-              onPress={() => router.push('/menu')}
+              onPress={() => {
+                setUserData((prev) => clearOperacionEnCurso(prev));
+                router.push('/menu');
+              }}
             >
               <Text style={globalStyles.menuIcon}>☰</Text>
             </TouchableOpacity>
@@ -529,21 +577,24 @@ const OtpVerificacionScreen = () => {
                 Datos de la transacción: {labelTransaccion}
               </Text>
             )}
+            {nombreServicioPagoDisplay !== '' ? (
+              <Text style={styles.transactionType}>Servicio: {nombreServicioPagoDisplay}</Text>
+            ) : null}            
             {(userData?.nombrecliente || userData?.recibo?.titularCuenta) != null && String(userData?.nombrecliente || userData?.recibo?.titularCuenta || '').trim() !== '' && (
               <Text style={styles.transactionType}>
                 Socio: {userData?.nombrecliente || userData?.recibo?.titularCuenta}
               </Text>
             )}
-            {(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion) != null
-              && String(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || '').trim() !== ''
-              && String(userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion || '').trim() !== '00000000' && (
+            {(userData?.identificacioncliente) != null
+              && String(userData?.identificacioncliente || '').trim() !== ''
+              && String(userData?.identificacioncliente || '').trim() !== '00000000' && (
               <Text style={styles.transactionType}>
-                Identificacion: {userData?.identificacioncliente || userData?.identificaciontitular || userData?.recibo?.identificacion}
+                Identificacion: {userData?.identificacioncliente}
               </Text>
             )}
-            {(userData?.numerocuentacliente || userData?.codigoprestamo || userData?.referencia) != null && String(userData?.numerocuentacliente || userData?.codigoprestamo || userData?.referencia || '').trim() !== '' && (
+            {userData?.numerocuentacliente != null && String(userData?.numerocuentacliente || '').trim() !== '' && (
               <Text style={styles.transactionType}>
-                Cuenta: {userData?.numerocuentacliente || userData?.codigoprestamo || userData?.referencia}
+                Cuenta: {userData?.numerocuentacliente}
               </Text>
             )}
             {userData?.tipoRegistroFirma != null && userData?.tipoRegistroFirma !== '' && (
@@ -551,6 +602,28 @@ const OtpVerificacionScreen = () => {
                 Cuenta registro: {userData?.tipoRegistroFirma}
               </Text>
             )}
+            {(userData?.codigoprestamo) != null && String(userData?.codigoprestamo || '').trim() !== '' && (
+              <Text style={styles.transactionType}>
+                Prestamo: {userData?.codigoprestamo}
+              </Text>
+            )}
+            {(userData?.referencia) != null && String(userData?.referencia || '').trim() !== '' && (
+              <Text style={styles.transactionType}>
+                Codigo y/o suministro: {userData?.referencia}
+              </Text>
+            )}
+            {Array.isArray(userData?.obligacionesSeleccionadas) &&
+              userData.obligacionesSeleccionadas.length > 0 && (
+                <Text style={styles.transactionType}>
+                  Codigo(s): {userData.obligacionesSeleccionadas.map(String).join(', ')}
+                </Text>
+              )}
+            {userData?.observacionDeposito != null &&
+              String(userData.observacionDeposito).trim() !== '' && (
+                <Text style={styles.transactionType}>
+                  Observacion: {userData.observacionDeposito}
+                </Text>
+              )}
             {monto != null && monto !== '' && !isNaN(parseFloat(monto)) && (
               <Text style={styles.transactionType}>
                 Valor: S/{parseFloat(monto).toFixed(2)}

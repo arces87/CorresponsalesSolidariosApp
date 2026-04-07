@@ -217,16 +217,24 @@ export default function DatosTransaccionPrestamoScreen() {
     }
   }, [catalogos]);
 
-  // Establecer valor límite y valor inicial (valorCancelarHastaCuotaCurso) cuando se selecciona un préstamo
+  // Límite del monto manual = valor hasta cuota actual (`valorCancelarHastaCuotaCurso`).
+  // No se usa `valorParaEstarAlDia` en validaciones. Si hasta cuota es 0, no hay ingreso manual (solo adelanto vía modal).
   useEffect(() => {
     setValorDesdeAdelanto(false);
     if (prestamoSeleccionado && prestamos.length > 0) {
       const prestamoSeleccionadoObj = prestamos.find(p => String(p.secuencial) === prestamoSeleccionado);
       if (prestamoSeleccionadoObj) {
-        const limite = prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso ?? 0;
-        setValorMaximo(limite);
-        if (prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso != null) {
-          setValorTransaccion(Number(prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso).toFixed(2));
+        const hastaCuota = Number(prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso ?? 0);
+        if (hastaCuota > 0) {
+          setValorMaximo(hastaCuota);
+          if (prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso != null) {
+            setValorTransaccion(Number(prestamoSeleccionadoObj.valorCancelarHastaCuotaCurso).toFixed(2));
+          } else {
+            setValorTransaccion('');
+          }
+        } else {
+          setValorMaximo(0);
+          setValorTransaccion('');
         }
       }
     } else {
@@ -454,11 +462,21 @@ export default function DatosTransaccionPrestamoScreen() {
                             </Text>
                           </View>
                           <View style={styles.loanListItemRow}>
-                            <Text style={styles.loanListLabel}>Cuota a cancelar: </Text>
+                            <Text style={styles.loanListLabel}>Hasta cuota actual: </Text>
                             <Text style={[styles.loanListValue, isSelected && styles.loanListItemSelectedText]}>
                               S/{prestamo.valorCancelarHastaCuotaCurso != null
                                 ? Number(prestamo.valorCancelarHastaCuotaCurso).toFixed(2)
                                 : '0.00'}
+                            </Text>
+                          </View>
+                          <View style={styles.loanListItemRow}>
+                            <Text style={styles.loanListLabel}>Valor para cancelar: </Text>
+                            <Text style={[styles.loanListValue, isSelected && styles.loanListItemSelectedText]}>
+                              S/{prestamo.valorParaCancelar != null
+                                ? Number(prestamo.valorParaCancelar).toFixed(2)
+                                : (prestamo.ValorParaCancelar != null
+                                  ? Number(prestamo.ValorParaCancelar).toFixed(2)
+                                  : '0.00')}
                             </Text>
                           </View>
                         </TouchableOpacity>
@@ -471,11 +489,19 @@ export default function DatosTransaccionPrestamoScreen() {
 
                 {prestamoSeleccionado && prestamos.length > 0 && (() => {
                   const prestamoObj = prestamos.find(p => String(p.secuencial) === prestamoSeleccionado);
-                  const esValorLimiteCero = prestamoObj ? (Number(prestamoObj.valorCancelarHastaCuotaCurso) === 0) : false;
+                  const numeroCuotaPendiente = prestamoObj
+                    ? Number(prestamoObj.numeroCuotaPendiente ?? prestamoObj.NumeroCuotaPendiente ?? 0)
+                    : 0;
+                  const hastaCuota = prestamoObj
+                    ? Number(prestamoObj.valorCancelarHastaCuotaCurso ?? 0)
+                    : 0;
+                  const puedeAdelantarCuota = numeroCuotaPendiente > 1;
+                  const hayMontoHastaCuotaActual = hastaCuota > 0;
+                  const soloBotonAdelanto = !hayMontoHastaCuotaActual;
                   return (
                   <View style={styles.accountDetails}>
                     <View style={styles.inputContainer}>
-                      {esValorLimiteCero && (
+                      {puedeAdelantarCuota && (
                         <TouchableOpacity
                           style={[styles.continueButton, styles.continueButtonAdelanto]}
                           onPress={() => handleAdelantaCuota()}
@@ -483,8 +509,10 @@ export default function DatosTransaccionPrestamoScreen() {
                           <Text style={styles.continueButtonText}>ADELANTA CUOTA</Text>
                         </TouchableOpacity>
                       )}
+                      {hayMontoHastaCuotaActual ? (
+                        <>
                       <Text style={styles.label}>Valor de la transacción</Text>
-                      <View style={[styles.currencyInputContainer, esValorLimiteCero && styles.inputDisabled]}>
+                      <View style={[styles.currencyInputContainer, valorDesdeAdelanto && styles.inputDisabled]}>
                         <Text style={styles.currencySymbol}>S/</Text>
                         <TextInput
                           style={styles.currencyInput}
@@ -492,10 +520,10 @@ export default function DatosTransaccionPrestamoScreen() {
                           placeholder="0.00"
                           placeholderTextColor="#999"
                           value={valorTransaccion}
-                          editable={!esValorLimiteCero}
+                          editable={!valorDesdeAdelanto}
                           onFocus={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                           onChangeText={(text) => {
-                            if (esValorLimiteCero) return;
+                            if (valorDesdeAdelanto) return;
                             setValorDesdeAdelanto(false);
                             // Allow only numbers and one decimal point
                             const regex = /^\d*\.?\d{0,2}$/;
@@ -525,6 +553,12 @@ export default function DatosTransaccionPrestamoScreen() {
                           }}
                         />
                       </View>
+                        </>
+                      ) : soloBotonAdelanto && !puedeAdelantarCuota ? (
+                        <Text style={styles.noAccountsText}>
+                          No hay monto hasta la cuota actual ni cuotas disponibles para adelantar.
+                        </Text>
+                      ) : null}
 
                       <TouchableOpacity
                         style={[styles.continueButton, !valorTransaccion && styles.continueButtonDisabled]}

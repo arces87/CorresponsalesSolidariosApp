@@ -3,12 +3,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useContext, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomModal from '../components/CustomModal';
+import { AuthContext } from '../context/AuthContext';
 import PrintService from '../services/PrintService';
 import { globalStyles } from '../styles/globalStyles';
+import { clearOperacionEnCurso } from '../utils/clearOperacionEnCurso';
 
 /** Escapa texto para HTML (PDF); usar después de toAsciiTicket en valores dinámicos */
 function escapeHtml(text) {
@@ -22,23 +24,18 @@ function escapeHtml(text) {
 
 export default function ComprobanteScreen() {
   const router = useRouter();
-  const { monto, comision, total, referencia, fecha, labelTransaccion, nombreSocio, numeroCuenta, codigoOperacion, observacion, usuario, negocio, identificacionCliente } = useLocalSearchParams();
+  const { setUserData } = useContext(AuthContext);
+  const { monto, comision, total, fecha, labelTransaccion, accionTransaccion, nombreSocio, numeroCuenta, codigoOperacion, observacion, usuario, negocio, identificacionCliente, nombreServicio } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const [imprimiendo, setImprimiendo] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalData, setModalData] = useState({
     title: '',
     message: '',
     type: 'info',
   });
-  const [selectorVisible, setSelectorVisible] = useState(false);
-  const [dispositivosDisponibles, setDispositivosDisponibles] = useState([]);
-  const [comprobanteParaImprimir, setComprobanteParaImprimir] = useState(null);
-  const [modalErrorImpresionVisible, setModalErrorImpresionVisible] = useState(false);
   const [guardandoPdf, setGuardandoPdf] = useState(false);
   const [tooltipLabel, setTooltipLabel] = useState(null);
   const tooltipTimeoutRef = useRef(null);
-  const seleccionDispositivoRef = useRef(null);
 
   const showTooltip = (label) => {
     if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
@@ -65,149 +62,28 @@ export default function ComprobanteScreen() {
     setModalVisible(false);
   };
 
-  const handleCancelarSelector = () => {
-    setSelectorVisible(false);
-    const ref = seleccionDispositivoRef.current;
-    if (ref?.resolve) ref.resolve(null);
-    seleccionDispositivoRef.current = null;
-  };
-
-  const handleImprimir = async () => {
-    try {
-      setImprimiendo(true);
-
-      try {
-        const bluetoothDisponible = await PrintService.verificarBluetooth();
-        if (!bluetoothDisponible) {
-          mostrarModal(
-            'Bluetooth no disponible',
-            'Por favor, active Bluetooth en su dispositivo para imprimir el comprobante.',
-            'warning'
-          );
-          setImprimiendo(false);
-          return;
-        }
-      } catch (bluetoothError) {
-        mostrarModal(
-          'Bluetooth no disponible',
-          bluetoothError.message || 'Por favor, active Bluetooth en su dispositivo para imprimir el comprobante.',
-          'warning'
-        );
-        setImprimiendo(false);
-        return;
-      }
-
-      await new Promise((r) => setTimeout(r, 300));
-      const dispositivos = await PrintService.buscarDispositivosBluetooth();
-      if (!dispositivos || !Array.isArray(dispositivos)) {
-        mostrarModal('Error', 'No se pudo obtener la lista de dispositivos Bluetooth.', 'error');
-        setImprimiendo(false);
-        return;
-      }
-      if (dispositivos.length === 0) {
-        mostrarModal(
-          'Sin dispositivos',
-          'No se encontraron dispositivos Bluetooth. Active Bluetooth y empareje la impresora.',
-          'warning'
-        );
-        setImprimiendo(false);
-        return;
-      }
-
-      setDispositivosDisponibles(dispositivos);
-      setSelectorVisible(true);
-      const dispositivoSeleccionado = await new Promise((resolve) => {
-        seleccionDispositivoRef.current = { resolve };
-      });
-      setSelectorVisible(false);
-      seleccionDispositivoRef.current = null;
-
-      if (!dispositivoSeleccionado) {
-        setImprimiendo(false);
-        return;
-      }
-
-      const deviceId =
-        dispositivoSeleccionado.address ||
-        dispositivoSeleccionado.Address ||
-        dispositivoSeleccionado.id ||
-        dispositivoSeleccionado.Id;
-      if (!deviceId) {
-        mostrarModal('Error', 'No se pudo obtener la dirección del dispositivo seleccionado.', 'error');
-        setImprimiendo(false);
-        return;
-      }
-
-      await new Promise((r) => setTimeout(r, 300));
-      try {
-        await PrintService.conectarImpresora(deviceId);
-      } catch (connectError) {
-        try {
-          await PrintService.desconectarImpresora();
-        } catch (e) {
-          console.warn('Al desconectar tras error de conexión:', e);
-        }
-        throw connectError;
-      }
-
-      const comprobante = {
-        fecha: fecha || new Date().toLocaleString(),
-        referencia: referencia || 'N/A',
-        monto: parseFloat(monto) || 0,
-        comision: parseFloat(comision) || 0,
-        total: parseFloat(total) || 0,
-        tipo: labelTransaccion || 'Transacción',
-        cliente: nombreSocio || '',
-        numeroCuenta: numeroCuenta || '',
-        codigoOperacion: codigoOperacion || referencia || 'N/A',
-        observacion: observacion || '',
-        usuario: usuario || '',
-        negocio: negocio || '',
-        identificacionCliente: identificacionCliente || '',
-        deviceId: null,
-      };
-
-      const exito = await PrintService.imprimirComprobante(comprobante);
-
-      if (exito) {
-        mostrarModal(
-          'Impresión exitosa',
-          'El comprobante ha sido enviado exitosamente a la impresora.',
-          'success'
-        );
-        setSelectorVisible(false);
-      }
-    } catch (error) {
-      console.error('Error al imprimir:', error);
-      // Ante cualquier error (ej. error al conectar): desconectar y mostrar modal para guardar PDF
-      try {
-        await PrintService.desconectarImpresora();
-      } catch (e) {
-        console.warn('Al desconectar tras error:', e);
-      }
-      setModalErrorImpresionVisible(true);
-    } finally {
-      setImprimiendo(false);
-    }
-  };
-
-  const cerrarModalErrorImpresion = () => {
-    setModalErrorImpresionVisible(false);
+  /** Mismo flujo que antes "Impresión con app": generar PDF y compartir (selector del sistema). */
+  const handleImprimir = () => {
+    void handleGuardarPdf();
   };
 
   // Mismos criterios que PrintService (ticket térmico): toAsciiTicket + normalizarFechaHora
   const estaticos = PrintService.COMPROBANTE_DATOS_ESTATICOS;
   const tipoAscii =
-    PrintService.toAsciiTicket(labelTransaccion || 'DEPOSITO EN CUENTA').toUpperCase() || 'DEPOSITO EN CUENTA';
+    PrintService.toAsciiTicket(labelTransaccion).toUpperCase() || 'OPERACION KAYPI';
   const montoStr = `S/ ${(parseFloat(monto) || 0).toFixed(2)}`;
   const fechaHora = PrintService.normalizarFechaHora(fecha);
-  const codigoOp = PrintService.toAsciiTicket(codigoOperacion || referencia || 'N/A');
+  const codigoOp = PrintService.toAsciiTicket(codigoOperacion);
   const idSocio = PrintService.toAsciiTicket(identificacionCliente);
   const nombreSocioAscii = PrintService.toAsciiTicket(nombreSocio);
-  const cuentaEnmascarada = numeroCuenta
+  const cuentaEnmascarada = accionTransaccion === 'retiro' || accionTransaccion === 'deposito'
     ? PrintService.toAsciiTicket(PrintService.enmascararNumeroCuenta(numeroCuenta))
-    : '';
+    : numeroCuenta;
   const observacionStr = observacion ? `:${PrintService.toAsciiTicket(observacion)}` : '';
+  const nombreServicioStr =
+    nombreServicio != null && String(nombreServicio).trim() !== ''
+      ? PrintService.toAsciiTicket(String(nombreServicio).trim())
+      : '';
   const negocioStr = PrintService.toAsciiTicket(negocio);
   const usuarioAscii = PrintService.toAsciiTicket(usuario);
   const nombreEmpresaDisplay = PrintService.toAsciiTicket(estaticos.nombreEmpresa).toUpperCase();
@@ -226,7 +102,7 @@ export default function ComprobanteScreen() {
       rows.push(`<tr><td colspan="2" style="text-align:center;">RUC: ${escapeHtml(rucDisplay)}</td></tr>`);
     }
     rows.push(
-      `<tr><td colspan="2" style="text-align:center;font-size:11px;">OPERACION REALIZADA EN SU ASESOR VIRTUAL</td></tr>`
+      `<tr><td colspan="2" style="text-align:center;font-size:11px;">OPERACION REALIZADA EN SU KAYPI</td></tr>`
     );
     rows.push(`<tr><td colspan="2"><hr/></td></tr>`);
     rows.push(`<tr><td colspan="2" style="text-align:center;font-weight:bold;">${escapeHtml(tipoAscii)}</td></tr>`);
@@ -249,7 +125,12 @@ export default function ComprobanteScreen() {
     }
     if (cuentaEnmascarada) {
       rows.push(
-        `<tr><td style="font-weight:bold;">NRO DE CUENTA:</td><td>${escapeHtml(cuentaEnmascarada)}</td></tr>`
+        `<tr><td style="font-weight:bold;">NRO DE CUENTA/CODIGO:</td><td>${escapeHtml(cuentaEnmascarada)}</td></tr>`
+      );
+    }
+    if (nombreServicioStr !== '') {
+      rows.push(
+        `<tr><td style="font-weight:bold;">SERVICIO:</td><td>${escapeHtml(nombreServicioStr)}</td></tr>`
       );
     }
     rows.push(
@@ -283,7 +164,6 @@ export default function ComprobanteScreen() {
   const handleGuardarPdf = async () => {
     if (Platform.OS === 'web') {
       mostrarModal('No disponible', 'Guardar como PDF no está disponible en la versión web.', 'warning');
-      cerrarModalErrorImpresion();
       return;
     }
     setGuardandoPdf(true);
@@ -300,20 +180,12 @@ export default function ComprobanteScreen() {
       } else {
         mostrarModal('Comprobante generado', 'El PDF se generó correctamente. Puede abrirlo desde la ubicación del archivo.', 'success');
       }
-      cerrarModalErrorImpresion();
     } catch (err) {
       console.error('Error al generar PDF:', err);
       mostrarModal('Error', err.message || 'No se pudo generar el archivo PDF.', 'error');
     } finally {
       setGuardandoPdf(false);
     }
-  };
-
-  const handleSeleccionarDispositivo = (dispositivo) => {
-    setSelectorVisible(false);
-    const ref = seleccionDispositivoRef.current;
-    if (ref?.resolve) ref.resolve(dispositivo);
-    seleccionDispositivoRef.current = null;
   };
 
   return (
@@ -350,7 +222,7 @@ export default function ComprobanteScreen() {
             ) : null}
             <Text style={styles.previewRegulado}>REGULADO Y SUPERVISADO POR LA S.B.S</Text>
             {rucDisplay ? <Text style={styles.previewRuc}>RUC:{rucDisplay}</Text> : null}
-            <Text style={styles.previewOperacion}>OPERACION REALIZADA EN SU ASESOR VIRTUAL</Text>
+            <Text style={styles.previewOperacion}>OPERACION REALIZADA EN SU KAYPI</Text>
             <View style={styles.previewSeparator} />
             <Text style={styles.previewTipo}>{tipoAscii}</Text>
             <Text style={styles.previewMonto}>{montoStr}</Text>
@@ -375,8 +247,16 @@ export default function ComprobanteScreen() {
             ) : null}
             {cuentaEnmascarada !== '' ? (
               <View style={styles.previewDetailRow}>
-                <Text style={styles.previewDetailLabel}>NRO DE CUENTA:</Text>
+                <Text style={styles.previewDetailLabel}>NRO DE CUENTA/CODIGO:</Text>
                 <Text style={styles.previewDetailValue}>{cuentaEnmascarada}</Text>
+              </View>
+            ) : null}
+            {nombreServicioStr !== '' ? (
+              <View style={styles.previewDetailRow}>
+                <Text style={styles.previewDetailLabel}>SERVICIO:</Text>
+                <Text style={styles.previewDetailValue} numberOfLines={3}>
+                  {nombreServicioStr}
+                </Text>
               </View>
             ) : null}
             <View style={styles.previewDetailRow}>
@@ -405,11 +285,11 @@ export default function ComprobanteScreen() {
             ) : null}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, (guardandoPdf || imprimiendo) && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
                 onPress={handleGuardarPdf}
                 onLongPress={() => showTooltip('Compartir')}
                 onPressOut={hideTooltip}
-                disabled={guardandoPdf || imprimiendo}
+                disabled={guardandoPdf}
                 accessibilityLabel="Compartir comprobante como PDF"
               >
                 {guardandoPdf ? (
@@ -419,28 +299,29 @@ export default function ComprobanteScreen() {
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, imprimiendo && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
                 onPress={handleImprimir}
                 onLongPress={() => showTooltip('Imprimir')}
                 onPressOut={hideTooltip}
-                disabled={imprimiendo}
+                disabled={guardandoPdf}
                 accessibilityLabel="Imprimir"
               >
-                {imprimiendo ? (
+                {guardandoPdf ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
                   <MaterialIcons name="print" size={28} color="#fff" />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, imprimiendo && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
                 onPress={() => {
+                  setUserData((prev) => clearOperacionEnCurso(prev));
                   router.dismissAll();
                   router.replace('/menu');
                 }}
                 onLongPress={() => showTooltip('Salir')}
                 onPressOut={hideTooltip}
-                disabled={imprimiendo}
+                disabled={guardandoPdf}
                 accessibilityLabel="Salir al menú"
               >
                 <MaterialIcons name="exit-to-app" size={28} color="#fff" />
@@ -459,104 +340,6 @@ export default function ComprobanteScreen() {
         onClose={cerrarModal}
       />
 
-      {/* Modal: error de impresión + opción guardar como PDF */}
-      <Modal
-        visible={modalErrorImpresionVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={cerrarModalErrorImpresion}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalErrorImpresionContainer}>
-            <LinearGradient
-              colors={['#325191', '#2a4580']}
-              style={styles.modalErrorImpresionGradient}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <View style={styles.modalErrorImpresionIcon}>
-                <MaterialIcons name="error-outline" size={48} color="#fff" />
-              </View>
-              <Text style={styles.modalErrorImpresionTitle}>Problema con la impresión</Text>
-              <Text style={styles.modalErrorImpresionMessage}>
-                Ocurrió un problema con la impresión. ¿Desea guardar el comprobante como archivo?
-              </Text>
-              <View style={styles.modalErrorImpresionButtons}>
-                <TouchableOpacity
-                  style={[styles.modalErrorImpresionBtn, styles.modalErrorImpresionBtnNo]}
-                  onPress={cerrarModalErrorImpresion}
-                  disabled={guardandoPdf}
-                >
-                  <Text style={styles.modalErrorImpresionBtnTextNo}>No</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalErrorImpresionBtn, styles.modalErrorImpresionBtnSi]}
-                  onPress={handleGuardarPdf}
-                  disabled={guardandoPdf}
-                >
-                  {guardandoPdf ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.modalErrorImpresionBtnTextSi}>Sí</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal de selección de dispositivos */}
-      <Modal
-        visible={selectorVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={handleCancelarSelector}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <LinearGradient
-              colors={['#325191', '#2a4580']}
-              style={styles.modalGradient}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Seleccionar Impresora</Text>
-                <Text style={styles.modalSubtitle}>
-                  Se encontraron {dispositivosDisponibles.length} dispositivo(s) disponible(s)
-                </Text>
-              </View>
-
-              <FlatList
-                data={dispositivosDisponibles}
-                keyExtractor={(item, index) => item.address || item.id || `device-${index}`}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.deviceItem}
-                    onPress={() => handleSeleccionarDispositivo(item)}
-                  >
-                    <MaterialIcons name="bluetooth" size={24} color="#2B4F8C" />
-                    <View style={styles.deviceInfo}>
-                      <Text style={styles.deviceName}>{item.name || 'Dispositivo sin nombre'}</Text>
-                      <Text style={styles.deviceAddress}>{item.address || item.id || 'ID desconocido'}</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={24} color="#666" />
-                  </TouchableOpacity>
-                )}
-                style={styles.deviceList}
-              />
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancelarSelector}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -750,149 +533,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: width * 0.9,
-    maxWidth: 400,
-    maxHeight: '80%',
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  modalGradient: {
-    padding: 20,
-  },
-  modalHeader: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  deviceList: {
-    maxHeight: 300,
-    marginBottom: 20,
-  },
-  deviceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  deviceInfo: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  deviceName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  deviceAddress: {
-    fontSize: 12,
-    color: '#666',
-  },
-  cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  cancelButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  modalErrorImpresionContainer: {
-    width: width * 0.85,
-    maxWidth: 360,
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  modalErrorImpresionGradient: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  modalErrorImpresionIcon: {
-    marginBottom: 12,
-  },
-  modalErrorImpresionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalErrorImpresionMessage: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalErrorImpresionButtons: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'center',
-  },
-  modalErrorImpresionBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 10,
-    minWidth: 100,
-    alignItems: 'center',
-    marginHorizontal: 6,
-  },
-  modalErrorImpresionBtnNo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  modalErrorImpresionBtnSi: {
-    backgroundColor: '#2BAC6B',
-  },
-  modalErrorImpresionBtnTextNo: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  modalErrorImpresionBtnTextSi: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
