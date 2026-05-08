@@ -2,17 +2,17 @@
   "expo": {
     "name": "Kaypi Cooperativa",
     "slug": "Kaypi Cooperativa",
-    "version": "1.0.0",
+    "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "corresponsalessolidariosapp",
+    "scheme": "losandesappagente",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.corresponsalessolidarios.app",
+      "package": "pe.coopac.losandes.appagente",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

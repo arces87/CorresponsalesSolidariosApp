@@ -9,6 +9,10 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Android release signing (no subir credenciales ni el keystore)
+android/keystore.properties
+android/*.keystore
+
 # Native
 .kotlin/
 *.orig.*

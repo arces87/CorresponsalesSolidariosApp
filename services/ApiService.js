@@ -7,10 +7,14 @@ const DEVICE_MAC_STORAGE_KEY = 'appDeviceClientMacGuid';
 const DEVICE_IMEI_STORAGE_KEY = 'appDeviceClientImei';
 
 //LOCAL
-//const BASE_URL = 'http://localhost:5001/api/v1.0';
+const BASE_URL = 'http://localhost:5001/api/v1.0';
 
-// APP
-const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
+// APP DEV
+//const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
+
+// APP PROD
+//const BASE_URL = 'http://190.116.29.101:9001/api/v1.0';
+//const BASE_URL = 'http://gwcorresponsal.cooperativalosandes.com.pe:9001/api/v1.0';
 
 let mac = '';
 let imei = '';
@@ -54,7 +58,7 @@ class ApiService {
 
       // Primero obtener el texto de la respuesta
       const responseText = await response.text();
-      //console.log('Respuesta del servidor (texto):', responseText);
+      console.log('Respuesta del servidor (texto):', responseText);
       
       if (!response.ok) {
         let errorMessage = `Error al obtener catálogos (${response.status})`;

@@ -1,20 +1,7 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "D:\\Ecuador\\CS\\App\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Ecuador\\CS\\App\\screens\\MenuScreen.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:screens\\MenuScreen.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Ecuador\\CS\\App\\screens\\CrearClienteScreen.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:screens\\CrearClienteScreen.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Ecuador\\CS\\App\\services\\ApiService.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:services\\ApiService.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -22,7 +9,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 121,
+          "SelectedChildIndex": -1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -507,45 +494,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "MenuScreen.js",
-              "DocumentMoniker": "D:\\Ecuador\\CS\\App\\screens\\MenuScreen.js",
-              "RelativeDocumentMoniker": "screens\\MenuScreen.js",
-              "ToolTip": "D:\\Ecuador\\CS\\App\\screens\\MenuScreen.js",
-              "RelativeToolTip": "screens\\MenuScreen.js",
-              "ViewState": "AgIAAAkAAAAAAAAAAAAAABYAAAACAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-05-06T21:15:33.088Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "CrearClienteScreen.js",
-              "DocumentMoniker": "D:\\Ecuador\\CS\\App\\screens\\CrearClienteScreen.js",
-              "RelativeDocumentMoniker": "screens\\CrearClienteScreen.js",
-              "ToolTip": "D:\\Ecuador\\CS\\App\\screens\\CrearClienteScreen.js",
-              "RelativeToolTip": "screens\\CrearClienteScreen.js",
-              "ViewState": "AgIAALABAAAAAAAAAAD4v70BAABGAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-05-06T21:11:18.951Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ApiService.js",
-              "DocumentMoniker": "D:\\Ecuador\\CS\\App\\services\\ApiService.js",
-              "RelativeDocumentMoniker": "services\\ApiService.js",
-              "ToolTip": "D:\\Ecuador\\CS\\App\\services\\ApiService.js",
-              "RelativeToolTip": "services\\ApiService.js",
-              "ViewState": "AgIAAIwBAAAAAAAAAAD4v4sBAAAlAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-05-06T21:09:51.485Z",
-              "EditorCaption": ""
             }
           ]
         },
@@ -568,10 +516,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:2:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
             }
           ]
         }

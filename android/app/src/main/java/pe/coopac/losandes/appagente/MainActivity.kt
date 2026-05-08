@@ -1,4 +1,4 @@
-package com.corresponsalessolidarios.app
+package pe.coopac.losandes.appagente
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
@@ -31,7 +31,7 @@ class MainActivity : ReactActivity() {
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
-   * rendering of the component.
+   * rendering of the main component.
    */
   override fun getMainComponentName(): String = "main"
 

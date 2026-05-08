@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
     fontWeight: 'bold',
-  },
+    },   
   input: {
     borderBottomWidth: 1,
     borderBottomColor: '#2B4F8C',
@@ -655,13 +655,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     minHeight: 72,
     textAlignVertical: 'top',
-  },
-  label: {
-    fontSize: 14,
-    color: '#2B4F8C',
-    marginBottom: 5,
-    fontWeight: '500',
-  },
+  },  
   continueButton: {
     backgroundColor: '#2B4F8C',
     borderRadius: 5,
