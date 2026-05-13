@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import React, { useContext, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BluetoothDeviceSelectorModal from '../components/BluetoothDeviceSelectorModal';
 import CustomModal from '../components/CustomModal';
 import { AuthContext } from '../context/AuthContext';
 import PrintService from '../services/PrintService';
@@ -34,8 +35,13 @@ export default function ComprobanteScreen() {
     type: 'info',
   });
   const [guardandoPdf, setGuardandoPdf] = useState(false);
+  const [imprimiendoBluetooth, setImprimiendoBluetooth] = useState(false);
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [dispositivosBluetooth, setDispositivosBluetooth] = useState([]);
+  const [deviceIdEnImpresion, setDeviceIdEnImpresion] = useState(null);
   const [tooltipLabel, setTooltipLabel] = useState(null);
   const tooltipTimeoutRef = useRef(null);
+  const ocupado = guardandoPdf || imprimiendoBluetooth;
 
   const showTooltip = (label) => {
     if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
@@ -62,9 +68,124 @@ export default function ComprobanteScreen() {
     setModalVisible(false);
   };
 
-  /** Mismo flujo que antes "Impresión con app": generar PDF y compartir (selector del sistema). */
+  /**
+   * Construye el objeto de comprobante con el shape que espera
+   * PrintService.imprimirComprobante (ESC/POS Bluetooth).
+   */
+  const construirComprobanteParaImprimir = (deviceId = null) => ({
+    fecha,
+    referencia: codigoOperacion,
+    monto: parseFloat(monto) || 0,
+    comision: parseFloat(comision) || 0,
+    total: parseFloat(total) || 0,
+    tipo: labelTransaccion,
+    cliente: nombreSocio,
+    numeroCuenta,
+    codigoOperacion,
+    observacion,
+    negocio,
+    usuario,
+    identificacionCliente,
+    nombreServicio,
+    deviceId,
+  });
+
+  /**
+   * Flujo de impresión directa por Bluetooth (ESC/POS) usando PrintService.
+   * 1. Verifica plataforma (solo Android) y permisos/módulo Bluetooth.
+   * 2. Fuerza desconexión previa para volver a mostrar el selector.
+   * 3. Busca dispositivos emparejados y abre el modal selector.
+   */
+  const handleImprimirBluetooth = async () => {
+    if (Platform.OS !== 'android') {
+      mostrarModal(
+        'No disponible',
+        'La impresión por Bluetooth solo está disponible en Android.',
+        'warning'
+      );
+      return;
+    }
+    setImprimiendoBluetooth(true);
+    try {
+      await PrintService.verificarBluetooth();
+      try {
+        await PrintService.desconectarImpresora();
+      } catch (_) {
+        // Ignorar errores de desconexión previa
+      }
+      const lista = await PrintService.buscarDispositivosBluetooth();
+      if (!Array.isArray(lista) || lista.length === 0) {
+        mostrarModal(
+          'Sin impresoras',
+          'No se encontraron impresoras Bluetooth emparejadas. Empareje su impresora desde la configuración del sistema e intente de nuevo.',
+          'warning'
+        );
+        return;
+      }
+      setDispositivosBluetooth(lista);
+      setSelectorVisible(true);
+    } catch (err) {
+      console.error('Error al iniciar impresión Bluetooth:', err);
+      mostrarModal(
+        'Error',
+        err?.message || 'No se pudo iniciar la impresión Bluetooth.',
+        'error'
+      );
+    } finally {
+      setImprimiendoBluetooth(false);
+    }
+  };
+
+  /**
+   * Conecta al dispositivo elegido e imprime el comprobante ESC/POS.
+   * Al finalizar (éxito o error) se desconecta para forzar la selección
+   * en la próxima impresión.
+   */
+  const handleSeleccionarDispositivo = async (device) => {
+    const deviceId = device?.address || device?.id || device?.deviceId;
+    if (!deviceId) {
+      mostrarModal('Error', 'El dispositivo seleccionado no tiene una dirección válida.', 'error');
+      return;
+    }
+    setDeviceIdEnImpresion(deviceId);
+    setImprimiendoBluetooth(true);
+    try {
+      await PrintService.imprimirComprobante(
+        construirComprobanteParaImprimir(deviceId)
+      );
+      setSelectorVisible(false);
+      mostrarModal(
+        'Impresión exitosa',
+        'El comprobante fue enviado a la impresora.',
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al imprimir por Bluetooth:', err);
+      const detalle = err?.detalleConexion?.mensaje || err?.message;
+      mostrarModal(
+        'Error de impresión',
+        detalle || 'No se pudo imprimir el comprobante.',
+        'error'
+      );
+    } finally {
+      try {
+        await PrintService.desconectarImpresora();
+      } catch (_) {
+        // Ignorar errores de desconexión final
+      }
+      setDeviceIdEnImpresion(null);
+      setImprimiendoBluetooth(false);
+    }
+  };
+
+  const handleCerrarSelector = () => {
+    if (imprimiendoBluetooth) return;
+    setSelectorVisible(false);
+    setDispositivosBluetooth([]);
+  };
+
   const handleImprimir = () => {
-    void handleGuardarPdf();
+    void handleImprimirBluetooth();
   };
 
   // Mismos criterios que PrintService (ticket térmico): toAsciiTicket + normalizarFechaHora
@@ -285,11 +406,11 @@ export default function ComprobanteScreen() {
             ) : null}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, ocupado && styles.buttonDisabled]}
                 onPress={handleGuardarPdf}
                 onLongPress={() => showTooltip('Compartir')}
                 onPressOut={hideTooltip}
-                disabled={guardandoPdf}
+                disabled={ocupado}
                 accessibilityLabel="Compartir comprobante como PDF"
               >
                 {guardandoPdf ? (
@@ -299,21 +420,21 @@ export default function ComprobanteScreen() {
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, ocupado && styles.buttonDisabled]}
                 onPress={handleImprimir}
                 onLongPress={() => showTooltip('Imprimir')}
                 onPressOut={hideTooltip}
-                disabled={guardandoPdf}
-                accessibilityLabel="Imprimir"
+                disabled={ocupado}
+                accessibilityLabel="Imprimir por Bluetooth"
               >
-                {guardandoPdf ? (
+                {imprimiendoBluetooth ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
                   <MaterialIcons name="print" size={28} color="#fff" />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonIcon, guardandoPdf && styles.buttonDisabled]}
+                style={[styles.button, styles.buttonIcon, ocupado && styles.buttonDisabled]}
                 onPress={() => {
                   setUserData((prev) => clearOperacionEnCurso(prev));
                   router.dismissAll();
@@ -321,7 +442,7 @@ export default function ComprobanteScreen() {
                 }}
                 onLongPress={() => showTooltip('Salir')}
                 onPressOut={hideTooltip}
-                disabled={guardandoPdf}
+                disabled={ocupado}
                 accessibilityLabel="Salir al menú"
               >
                 <MaterialIcons name="exit-to-app" size={28} color="#fff" />
@@ -338,6 +459,15 @@ export default function ComprobanteScreen() {
         message={modalData.message}
         type={modalData.type}
         onClose={cerrarModal}
+      />
+
+      <BluetoothDeviceSelectorModal
+        visible={selectorVisible}
+        dispositivos={dispositivosBluetooth}
+        imprimiendo={imprimiendoBluetooth}
+        deviceIdSeleccionado={deviceIdEnImpresion}
+        onSelect={handleSeleccionarDispositivo}
+        onClose={handleCerrarSelector}
       />
 
     </View>

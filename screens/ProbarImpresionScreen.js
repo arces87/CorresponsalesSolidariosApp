@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
@@ -12,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import BluetoothDeviceSelectorModal from '../components/BluetoothDeviceSelectorModal';
 import CustomModal from '../components/CustomModal';
 import { useCustomModal } from '../hooks/useCustomModal';
 import PrintService from '../services/PrintService';
@@ -62,7 +64,12 @@ function createComprobantePrueba() {
 export default function ProbarImpresionScreen() {
   const router = useRouter();
   const [guardandoPdf, setGuardandoPdf] = useState(false);
+  const [imprimiendoBluetooth, setImprimiendoBluetooth] = useState(false);
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [dispositivosBluetooth, setDispositivosBluetooth] = useState([]);
+  const [deviceIdEnImpresion, setDeviceIdEnImpresion] = useState(null);
   const { modalVisible, modalData, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
+  const ocupado = guardandoPdf || imprimiendoBluetooth;
 
   /** Misma estructura y criterios (toAsciiTicket, etiquetas ASCII) que ComprobanteScreen.buildComprobanteHtml */
   const buildComprobantePruebaHtml = () => {
@@ -182,6 +189,89 @@ export default function ProbarImpresionScreen() {
     }
   };
 
+  /**
+   * Flujo de impresión directa por Bluetooth con datos de prueba.
+   * Mismo proceso que ComprobanteScreen.handleImprimirBluetooth, pero usando
+   * createComprobantePrueba() en lugar de los params de la operación real.
+   */
+  const handleImprimirBluetooth = async () => {
+    if (Platform.OS !== 'android') {
+      mostrarInfo(
+        'No disponible',
+        'La impresión por Bluetooth solo está disponible en Android.'
+      );
+      return;
+    }
+    setImprimiendoBluetooth(true);
+    try {
+      await PrintService.verificarBluetooth();
+      try {
+        await PrintService.desconectarImpresora();
+      } catch (_) {
+        // Ignorar errores de desconexión previa
+      }
+      const lista = await PrintService.buscarDispositivosBluetooth();
+      if (!Array.isArray(lista) || lista.length === 0) {
+        mostrarInfo(
+          'Sin impresoras',
+          'No se encontraron impresoras Bluetooth emparejadas. Empareje su impresora desde la configuración del sistema e intente de nuevo.'
+        );
+        return;
+      }
+      setDispositivosBluetooth(lista);
+      setSelectorVisible(true);
+    } catch (err) {
+      console.error('Error al iniciar impresión Bluetooth de prueba:', err);
+      mostrarError('Error', err?.message || 'No se pudo iniciar la impresión Bluetooth.');
+    } finally {
+      setImprimiendoBluetooth(false);
+    }
+  };
+
+  /**
+   * Conecta al dispositivo elegido e imprime un comprobante de prueba ESC/POS.
+   * Al finalizar (éxito o error) desconecta para forzar selección en la próxima prueba.
+   */
+  const handleSeleccionarDispositivo = async (device) => {
+    const deviceId = device?.address || device?.id || device?.deviceId;
+    if (!deviceId) {
+      mostrarError('Error', 'El dispositivo seleccionado no tiene una dirección válida.');
+      return;
+    }
+    setDeviceIdEnImpresion(deviceId);
+    setImprimiendoBluetooth(true);
+    try {
+      const comprobantePrueba = createComprobantePrueba();
+      await PrintService.imprimirComprobante({
+        ...comprobantePrueba,
+        deviceId,
+      });
+      setSelectorVisible(false);
+      mostrarExito(
+        'Impresión exitosa',
+        'El comprobante de prueba fue enviado a la impresora.'
+      );
+    } catch (err) {
+      console.error('Error al imprimir prueba por Bluetooth:', err);
+      const detalle = err?.detalleConexion?.mensaje || err?.message;
+      mostrarError('Error de impresión', detalle || 'No se pudo imprimir el comprobante de prueba.');
+    } finally {
+      try {
+        await PrintService.desconectarImpresora();
+      } catch (_) {
+        // Ignorar errores de desconexión final
+      }
+      setDeviceIdEnImpresion(null);
+      setImprimiendoBluetooth(false);
+    }
+  };
+
+  const handleCerrarSelector = () => {
+    if (imprimiendoBluetooth) return;
+    setSelectorVisible(false);
+    setDispositivosBluetooth([]);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -208,19 +298,47 @@ export default function ProbarImpresionScreen() {
 
         <View style={styles.content}>
           <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Impresión con app (PDF)</Text>
             <Text style={styles.description}>
-              Genera un comprobante de prueba en PDF y ábrelo con el menú compartir del sistema
-              para enviarlo a su app de impresión u otro destino (mismo flujo que en el comprobante real).
+              Genera un comprobante de prueba en PDF y lo abre con el menú compartir del sistema
+              para enviarlo a su app de impresión u otro destino.
             </Text>
             <TouchableOpacity
-              style={[styles.runButton, guardandoPdf && styles.runButtonDisabled]}
+              style={[styles.runButton, ocupado && styles.runButtonDisabled]}
               onPress={() => void handleImpresionConApp()}
-              disabled={guardandoPdf}
+              disabled={ocupado}
+              activeOpacity={0.8}
             >
               {guardandoPdf ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.runButtonText}>EJECUTAR PRUEBA</Text>
+                <View style={styles.runButtonContent}>
+                  <MaterialIcons name="share" size={20} color={colors.white} />
+                  <Text style={styles.runButtonText}>COMPARTIR PDF</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <Text style={styles.sectionTitle}>Impresión por Bluetooth (ESC/POS)</Text>
+            <Text style={styles.description}>
+              Envía un comprobante de prueba directamente a la impresora térmica vía Bluetooth
+              (mismo proceso que en el comprobante real, solo Android).
+            </Text>
+            <TouchableOpacity
+              style={[styles.runButton, styles.runButtonBluetooth, ocupado && styles.runButtonDisabled]}
+              onPress={() => void handleImprimirBluetooth()}
+              disabled={ocupado}
+              activeOpacity={0.8}
+            >
+              {imprimiendoBluetooth && !selectorVisible ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <View style={styles.runButtonContent}>
+                  <MaterialIcons name="print" size={20} color={colors.white} />
+                  <Text style={styles.runButtonText}>IMPRIMIR POR BLUETOOTH</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>
@@ -234,6 +352,15 @@ export default function ProbarImpresionScreen() {
         type={modalData.type}
         buttonText={modalData.buttonText}
         onClose={cerrarModal}
+      />
+
+      <BluetoothDeviceSelectorModal
+        visible={selectorVisible}
+        dispositivos={dispositivosBluetooth}
+        imprimiendo={imprimiendoBluetooth}
+        deviceIdSeleccionado={deviceIdEnImpresion}
+        onSelect={handleSeleccionarDispositivo}
+        onClose={handleCerrarSelector}
       />
     </SafeAreaView>
   );
@@ -263,11 +390,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  sectionTitle: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   description: {
     color: colors.darkGray,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
   runButton: {
@@ -278,12 +412,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52,
   },
+  runButtonBluetooth: {
+    backgroundColor: '#2B4F8C',
+  },
   runButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
+  },
+  runButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   runButtonText: {
     color: colors.white,
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 15,
+    marginLeft: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 20,
   },
 });

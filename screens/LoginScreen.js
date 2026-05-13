@@ -208,8 +208,8 @@ export default function LoginScreen() {
     try {
       const { mac, imei } = await ensureDeviceMacAndImeiInStorage();
       mostrarInfo(
-        'Device ID',
-        `AndroidID: ${mac}\n\nGUID: ${imei}`
+        '',
+        `AndroidID: ${mac}\nGUID: ${imei}`
       );
     } catch (error) {
       mostrarError('Error', 'Error al obtener el Device ID: ' + (error.message || error));
@@ -324,13 +324,9 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {/*
+        {
+        //TODO: Agregar versión de la app
         <View style={[styles.bottomInfoContainer, { bottom: Math.max(20, insets.bottom + 12) }]}>
-          {nombreEmpresa ? (
-            <View style={styles.empresaContainer}>
-              <Text style={styles.empresaText} allowFontScaling={false}>{nombreEmpresa}</Text>
-            </View>
-          ) : null}
           <TouchableOpacity
             style={styles.versionContainer}
             onPress={() => router.push('/probarimpresion')}
@@ -339,7 +335,8 @@ export default function LoginScreen() {
             <Text style={styles.versionText} allowFontScaling={false}>Versión Test Print</Text>
           </TouchableOpacity>
         </View>
-        */}
+        //TODO: Agregar versión de la app
+        }
       </LinearGradient>
       <CustomModal
         visible={modalVisible}
@@ -463,7 +460,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textAlign: 'center',
   },
-  /*
+  //styles para la versión de la app  
   bottomInfoContainer: {
     position: 'absolute',
     bottom: 20,
@@ -496,5 +493,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
   },
-  */
+  //styles para la versión de la app  
 });
