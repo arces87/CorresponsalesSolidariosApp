@@ -1,9 +1,15 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 /**
  * Componente de modal personalizado y estético
@@ -58,6 +64,10 @@ export default function CustomModal({
   };
 
   const { icon, iconColor, gradientColors, backgroundColor } = getIconAndColor();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const modalWidth = Math.min(windowWidth * 0.85, 400);
+  // Caps message area so tall modals scroll instead of clipping off-screen (e.g. Device ID modal in portrait).
+  const messageScrollMaxHeight = Math.max(120, Math.min(340, Math.round(windowHeight * 0.42)));
 
   return (
     <Modal
@@ -67,7 +77,7 @@ export default function CustomModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { width: modalWidth }]}>
           <LinearGradient
             colors={gradientColors}
             style={styles.gradientHeader}
@@ -86,9 +96,17 @@ export default function CustomModal({
               </Text>
             )}
             {message && (
-              <Text style={styles.message} allowFontScaling={false}>
-                {message}
-              </Text>
+              <ScrollView
+                style={[styles.messageScroll, { maxHeight: messageScrollMaxHeight }]}
+                contentContainerStyle={styles.messageScrollContent}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.message} allowFontScaling={false}>
+                  {message}
+                </Text>
+              </ScrollView>
             )}
 
             <TouchableOpacity
@@ -116,8 +134,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContainer: {
-    width: width * 0.85,
-    maxWidth: 400,
     backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
@@ -156,11 +172,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  messageScroll: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  messageScrollContent: {
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
   message: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 24,
     lineHeight: 22,
   },
   button: {

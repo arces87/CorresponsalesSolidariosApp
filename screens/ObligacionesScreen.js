@@ -308,19 +308,7 @@ export default function ObligacionesScreen() {
               <View style={styles.resultRow}>
                 <Text style={styles.resultLabel}>Nombre:</Text>
                 <Text style={styles.resultValue}>{[cliente.nombres || cliente.nombre, cliente.apellidos || cliente.apellido].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(' ') || cliente.nombreComercial || 'No disponible'}</Text>
-              </View>
-              {cliente.telefono && (
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Teléfono:</Text>
-                  <Text style={styles.resultValue}>{cliente.telefono}</Text>
-                </View>
-              )}
-              {cliente.correoElectronico && (
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Correo:</Text>
-                  <Text style={styles.resultValue}>{cliente.correoElectronico}</Text>
-                </View>
-              )}
+              </View>              
 
               {/* Tabla de Obligaciones */}
               <View style={styles.section}>

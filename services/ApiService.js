@@ -7,14 +7,14 @@ const DEVICE_MAC_STORAGE_KEY = 'appDeviceClientMacGuid';
 const DEVICE_IMEI_STORAGE_KEY = 'appDeviceClientImei';
 
 //LOCAL
-const BASE_URL = 'http://localhost:5001/api/v1.0';
+//const BASE_URL = 'http://localhost:5001/api/v1.0';
 
 // APP DEV
 //const BASE_URL = 'http://190.116.29.99:9001/api/v1.0';
 
 // APP PROD
 //const BASE_URL = 'http://190.116.29.101:9001/api/v1.0';
-//const BASE_URL = 'http://gwcorresponsal.cooperativalosandes.com.pe:9001/api/v1.0';
+const BASE_URL = 'http://gwcorresponsal.cooperativalosandes.com.pe:9001/api/v1.0';
 
 let mac = '';
 let imei = '';
@@ -25,6 +25,27 @@ async function updateSessionMac() {
 }
 
 class ApiService {
+  /** True si la respuesta trae al menos un catálogo con elementos (Financial / distribuidos). */
+  static distribuidosTieneDatosUtiles(data) {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    const claves = [
+      'tiposIdentificaciones',
+      'tiposAlertas',
+      'paises',
+      'estadoCivil',
+    ];
+    return claves.some((key) => {
+      const arr = data[key];
+      return Array.isArray(arr) && arr.length > 0;
+    });
+  }
+
+  /**
+   * Catálogos desde Financial. Resuelve a `{ catalogos, sinDatosFinancial }`.
+   * `sinDatosFinancial` es true cuando la respuesta OK no trae ningún arreglo de catálogo con datos.
+   */
   static async obtenerDistribuidos({usuario}) {
     const url = `${BASE_URL}/Distribuidos/obtenerDistribuidos`;
     try {
@@ -83,8 +104,13 @@ class ApiService {
           console.warn('La respuesta no tiene la estructura esperada:', data);
           // Devolver la respuesta de todos modos, ya que puede ser válida pero con estructura diferente
         }
-        
-        return data;
+
+        const sinDatosFinancial = !ApiService.distribuidosTieneDatosUtiles(data);
+        if (sinDatosFinancial) {
+          console.warn('obtenerDistribuidos: respuesta sin datos útiles de Financial', data);
+        }
+
+        return { catalogos: data, sinDatosFinancial };
       } catch (e) {
         //console.error('Error al parsear respuesta JSON:', e);
         //console.error('Texto que no se pudo parsear:', responseText);

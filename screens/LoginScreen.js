@@ -172,9 +172,16 @@ export default function LoginScreen() {
         console.log('response', response);  
         // 3. Obtener catálogos
         try {
-          const catalogos = await ApiService.obtenerDistribuidos({            
+          const { catalogos, sinDatosFinancial } = await ApiService.obtenerDistribuidos({
             usuario: (username || '').trim().toUpperCase()
           });
+
+          if (sinDatosFinancial) {
+            mostrarAdvertencia(
+              'Aviso',
+              'No se han obtenido los datos de Financial.'
+            );
+          }
 
           if (catalogos) {
             setCatalogos(catalogos);
@@ -202,7 +209,7 @@ export default function LoginScreen() {
       const { mac, imei } = await ensureDeviceMacAndImeiInStorage();
       mostrarInfo(
         'Device ID',
-        `MAC (AndroidID): ${mac}\n\nIMEI (GUID): ${imei}`
+        `AndroidID: ${mac}\n\nGUID: ${imei}`
       );
     } catch (error) {
       mostrarError('Error', 'Error al obtener el Device ID: ' + (error.message || error));
