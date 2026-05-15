@@ -39,6 +39,7 @@ export default function ComprobanteScreen() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [dispositivosBluetooth, setDispositivosBluetooth] = useState([]);
   const [deviceIdEnImpresion, setDeviceIdEnImpresion] = useState(null);
+  const [lastPrinterId, setLastPrinterId] = useState(null);
   const [tooltipLabel, setTooltipLabel] = useState(null);
   const tooltipTimeoutRef = useRef(null);
   const ocupado = guardandoPdf || imprimiendoBluetooth;
@@ -58,6 +59,15 @@ export default function ComprobanteScreen() {
     }
     setTooltipLabel(null);
   };
+ 
+  // Cargar la última impresora seleccionada al montar
+  React.useEffect(() => {
+    const cargarPreferencia = async () => {
+      const id = await PrintService.obtenerUltimaImpresora();
+      if (id) setLastPrinterId(id);
+    };
+    cargarPreferencia();
+  }, []);
 
   const mostrarModal = (title, message, type = 'info') => {
     setModalData({ title, message, type });
@@ -93,8 +103,7 @@ export default function ComprobanteScreen() {
   /**
    * Flujo de impresión directa por Bluetooth (ESC/POS) usando PrintService.
    * 1. Verifica plataforma (solo Android) y permisos/módulo Bluetooth.
-   * 2. Fuerza desconexión previa para volver a mostrar el selector.
-   * 3. Busca dispositivos emparejados y abre el modal selector.
+   * 2. Busca dispositivos emparejados y abre el modal selector.
    */
   const handleImprimirBluetooth = async () => {
     if (Platform.OS !== 'android') {
@@ -108,11 +117,6 @@ export default function ComprobanteScreen() {
     setImprimiendoBluetooth(true);
     try {
       await PrintService.verificarBluetooth();
-      try {
-        await PrintService.desconectarImpresora();
-      } catch (_) {
-        // Ignorar errores de desconexión previa
-      }
       const lista = await PrintService.buscarDispositivosBluetooth();
       if (!Array.isArray(lista) || lista.length === 0) {
         mostrarModal(
@@ -137,9 +141,9 @@ export default function ComprobanteScreen() {
   };
 
   /**
-   * Conecta al dispositivo elegido e imprime el comprobante ESC/POS.
-   * Al finalizar (éxito o error) se desconecta para forzar la selección
-   * en la próxima impresión.
+   * Imprime el comprobante ESC/POS en el dispositivo elegido.
+   * La librería @finan-me/react-native-thermal-printer maneja
+   * la conexión/desconexión internamente en cada printBluetooth().
    */
   const handleSeleccionarDispositivo = async (device) => {
     const deviceId = device?.address || device?.id || device?.deviceId;
@@ -153,6 +157,11 @@ export default function ComprobanteScreen() {
       await PrintService.imprimirComprobante(
         construirComprobanteParaImprimir(deviceId)
       );
+      
+      // Guardar selección para futuras impresiones
+      await PrintService.guardarUltimaImpresora(deviceId);
+      setLastPrinterId(deviceId);
+      
       setSelectorVisible(false);
       mostrarModal(
         'Impresión exitosa',
@@ -161,18 +170,12 @@ export default function ComprobanteScreen() {
       );
     } catch (err) {
       console.error('Error al imprimir por Bluetooth:', err);
-      const detalle = err?.detalleConexion?.mensaje || err?.message;
       mostrarModal(
         'Error de impresión',
-        detalle || 'No se pudo imprimir el comprobante.',
+        err?.message || 'No se pudo imprimir el comprobante.',
         'error'
       );
     } finally {
-      try {
-        await PrintService.desconectarImpresora();
-      } catch (_) {
-        // Ignorar errores de desconexión final
-      }
       setDeviceIdEnImpresion(null);
       setImprimiendoBluetooth(false);
     }
@@ -465,7 +468,7 @@ export default function ComprobanteScreen() {
         visible={selectorVisible}
         dispositivos={dispositivosBluetooth}
         imprimiendo={imprimiendoBluetooth}
-        deviceIdSeleccionado={deviceIdEnImpresion}
+        deviceIdSeleccionado={deviceIdEnImpresion || lastPrinterId}
         onSelect={handleSeleccionarDispositivo}
         onClose={handleCerrarSelector}
       />

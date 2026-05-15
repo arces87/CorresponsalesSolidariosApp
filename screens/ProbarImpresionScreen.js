@@ -68,8 +68,18 @@ export default function ProbarImpresionScreen() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [dispositivosBluetooth, setDispositivosBluetooth] = useState([]);
   const [deviceIdEnImpresion, setDeviceIdEnImpresion] = useState(null);
+  const [lastPrinterId, setLastPrinterId] = useState(null);
   const { modalVisible, modalData, mostrarError, mostrarInfo, mostrarExito, cerrarModal } = useCustomModal();
   const ocupado = guardandoPdf || imprimiendoBluetooth;
+ 
+  // Cargar la última impresora seleccionada al montar
+  React.useEffect(() => {
+    const cargarPreferencia = async () => {
+      const id = await PrintService.obtenerUltimaImpresora();
+      if (id) setLastPrinterId(id);
+    };
+    cargarPreferencia();
+  }, []);
 
   /** Misma estructura y criterios (toAsciiTicket, etiquetas ASCII) que ComprobanteScreen.buildComprobanteHtml */
   const buildComprobantePruebaHtml = () => {
@@ -205,11 +215,6 @@ export default function ProbarImpresionScreen() {
     setImprimiendoBluetooth(true);
     try {
       await PrintService.verificarBluetooth();
-      try {
-        await PrintService.desconectarImpresora();
-      } catch (_) {
-        // Ignorar errores de desconexión previa
-      }
       const lista = await PrintService.buscarDispositivosBluetooth();
       if (!Array.isArray(lista) || lista.length === 0) {
         mostrarInfo(
@@ -229,8 +234,9 @@ export default function ProbarImpresionScreen() {
   };
 
   /**
-   * Conecta al dispositivo elegido e imprime un comprobante de prueba ESC/POS.
-   * Al finalizar (éxito o error) desconecta para forzar selección en la próxima prueba.
+   * Imprime un comprobante de prueba ESC/POS en el dispositivo elegido.
+   * La librería @finan-me/react-native-thermal-printer maneja
+   * la conexión/desconexión internamente en cada printBluetooth().
    */
   const handleSeleccionarDispositivo = async (device) => {
     const deviceId = device?.address || device?.id || device?.deviceId;
@@ -246,6 +252,11 @@ export default function ProbarImpresionScreen() {
         ...comprobantePrueba,
         deviceId,
       });
+
+      // Guardar selección para futuras impresiones
+      await PrintService.guardarUltimaImpresora(deviceId);
+      setLastPrinterId(deviceId);
+
       setSelectorVisible(false);
       mostrarExito(
         'Impresión exitosa',
@@ -253,14 +264,8 @@ export default function ProbarImpresionScreen() {
       );
     } catch (err) {
       console.error('Error al imprimir prueba por Bluetooth:', err);
-      const detalle = err?.detalleConexion?.mensaje || err?.message;
-      mostrarError('Error de impresión', detalle || 'No se pudo imprimir el comprobante de prueba.');
+      mostrarError('Error de impresión', err?.message || 'No se pudo imprimir el comprobante de prueba.');
     } finally {
-      try {
-        await PrintService.desconectarImpresora();
-      } catch (_) {
-        // Ignorar errores de desconexión final
-      }
       setDeviceIdEnImpresion(null);
       setImprimiendoBluetooth(false);
     }
@@ -358,7 +363,7 @@ export default function ProbarImpresionScreen() {
         visible={selectorVisible}
         dispositivos={dispositivosBluetooth}
         imprimiendo={imprimiendoBluetooth}
-        deviceIdSeleccionado={deviceIdEnImpresion}
+        deviceIdSeleccionado={deviceIdEnImpresion || lastPrinterId}
         onSelect={handleSeleccionarDispositivo}
         onClose={handleCerrarSelector}
       />
