@@ -25,7 +25,7 @@ function getGUID(mac) {
     hash = ((hash << 5) - hash) + mac.charCodeAt(i);
     hash |= 0;
   }
-  return Math.abs(hash).toString(16).padStart(16, '0');
+  return Math.abs(hash).toString(16).padStart(10, '0');
 }
 
 function generateDeviceMacUuid() {
@@ -208,8 +208,8 @@ export default function LoginScreen() {
     try {
       const { mac, imei } = await ensureDeviceMacAndImeiInStorage();
       mostrarInfo(
-        '',
-        `AndroidID: ${mac}\nGUID: ${imei}`
+        `AID:${mac}`,
+        `GID:${imei}`
       );
     } catch (error) {
       mostrarError('Error', 'Error al obtener el Device ID: ' + (error.message || error));
@@ -259,7 +259,11 @@ export default function LoginScreen() {
         end={{ x: 0.5, y: 1 }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={20}>
-          <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: Math.max(24, insets.bottom + 24) }]} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={[styles.scrollContainer, { paddingBottom: Math.max(48, insets.bottom + 32) }]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.topSection}>
               <Image
                 source={require('../assets/logo.png')}
@@ -322,21 +326,17 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
             </View>
+            <View style={styles.bottomInfoContainer}>
+              <TouchableOpacity
+                style={styles.versionContainer}
+                onPress={() => router.push('/probarimpresion')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.versionText} allowFontScaling={false}>Versión 4.0.2.T</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {
-        //TODO: Agregar versión de la app
-        <View style={[styles.bottomInfoContainer, { bottom: Math.max(20, insets.bottom + 12) }]}>
-          <TouchableOpacity
-            style={styles.versionContainer}
-            onPress={() => router.push('/probarimpresion')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.versionText} allowFontScaling={false}>Versión Test Print</Text>
-          </TouchableOpacity>
-        </View>
-        //TODO: Agregar versión de la app
-        }
       </LinearGradient>
       <CustomModal
         visible={modalVisible}
@@ -462,13 +462,10 @@ const styles = StyleSheet.create({
   },
   //styles para la versión de la app  
   bottomInfoContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    marginTop: 24,
+    width: '100%',
   },
   empresaContainer: {
     marginBottom: 8,
